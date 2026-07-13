@@ -258,7 +258,7 @@ function LojaReportContent() {
           </div>
         )}
         
-        {viewMode !== 'cliente' && (
+        {viewMode === 'geral' && (
           <div className="summary-card bg-pink">
             <strong>{money(totalFunrural)}</strong>
             <span>FUNRURAL</span>
@@ -325,7 +325,7 @@ function LojaReportContent() {
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
               {viewMode === 'produtor' && <th>Vencimento</th>}
-              {viewMode !== 'cliente' && <th>FUNRURAL</th>}
+              {viewMode === 'geral' && <th>FUNRURAL</th>}
               <th>Valor NFe's</th>
 
               {viewMode === 'geral' && <th style={{background: '#b39ddb', color: '#333'}}>Lucro Líquido</th>}
@@ -366,7 +366,7 @@ function LojaReportContent() {
                   {viewMode === 'geral' && <td>{money(s.producerNetAmount || 0)}</td>}
                   {viewMode === 'geral' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
                   {viewMode === 'produtor' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
-                  {viewMode !== 'cliente' && <td>{money(getFunruralAmount(s))}</td>}
+                  {viewMode === 'geral' && <td>{money(getFunruralAmount(s))}</td>}
                   <td>{money(s.nfeValue)}</td>
 
                   {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
@@ -399,7 +399,7 @@ function LojaReportContent() {
               {viewMode === 'geral' && <td>{money(totalPagar)}</td>}
               {viewMode === 'geral' && <td></td>}
               {viewMode === 'produtor' && <td></td>}
-              {viewMode !== 'cliente' && <td>{money(totalFunrural)}</td>}
+              {viewMode === 'geral' && <td>{money(totalFunrural)}</td>}
               <td>{money(totalNFe)}</td>
 
               {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: totalLucro < 0 ? 'red' : 'green'}}>{money(totalLucro)}</td>}

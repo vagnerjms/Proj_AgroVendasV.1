@@ -1349,3 +1349,31 @@ button.link-action:disabled,
 .nav-group-items a:hover {
   color: #fff;
 }
+
+/* Highlight box for producer payout */
+.payout-highlight-box {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #16a34a;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.payout-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #14532d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payout-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #16a34a;
+}

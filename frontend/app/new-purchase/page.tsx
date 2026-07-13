@@ -285,15 +285,19 @@ export default function NewPurchasePage() {
         <aside className="calc-panel">
           <h2>Resumo Financeiro</h2>
           {calculation ? (
-            <dl>
-              <dt>Total de sacos comprados</dt><dd>{calculation.totalBags}</dd>
-              <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
-              <dt>Custo total Bruto</dt>
-              <dd>{money(calculation.totalAmount)}</dd>
-              <dt>FUNRURAL 1,50%</dt><dd>{money(calculation.funruralRetentionAmount)}</dd>
-              <dt>Líquido a Pagar ao Produtor</dt>
-              <dd>{money(calculation.producerNetAmount)}</dd>
-            </dl>
+            <>
+              <dl>
+                <dt>Total de sacos comprados</dt><dd>{calculation.totalBags}</dd>
+                <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
+                <dt>Custo total Bruto</dt>
+                <dd>{money(calculation.totalAmount)}</dd>
+                <dt>FUNRURAL 1,50%</dt><dd>{money(calculation.funruralRetentionAmount)}</dd>
+              </dl>
+              <div className="payout-highlight-box">
+                <span className="payout-label">Líquido a Pagar ao Produtor</span>
+                <span className="payout-value">{money(calculation.producerNetAmount)}</span>
+              </div>
+            </>
           ) : <p className="empty">Informe os valores para calcular.</p>}
           <button className="primary-action full" type="submit">Confirmar Compra</button>
           {message ? <p className="message">{message}</p> : null}

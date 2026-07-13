@@ -17,6 +17,7 @@ type SalesOrder = {
   totalParticularAmount: number;
   customerId?: Entity;
   producerId?: Entity;
+  funruralRetentionAmount?: number;
 };
 
 type PurchaseOrder = {
@@ -26,6 +27,7 @@ type PurchaseOrder = {
   fiscalStatus: string;
   totalAmount: number;
   producerId?: Entity;
+  funruralRetentionAmount?: number;
 };
 
 type FiscalDocument = {

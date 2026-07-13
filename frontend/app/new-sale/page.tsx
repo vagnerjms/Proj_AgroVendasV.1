@@ -72,7 +72,7 @@ export default function NewSalePage() {
   const [originLocation, setOriginLocation] = useState('');
   const [destinationCity, setDestinationCity] = useState('');
   const [destinationState, setDestinationState] = useState('');
-  const [saleType, setSaleType] = useState<'compra_venda' | 'venda_estoque'>('compra_venda');
+  const [saleType, setSaleType] = useState<'particular' | 'compra_venda' | 'intermediacao' | 'venda_estoque'>('compra_venda');
   const [brokerageFeeType, setBrokerageFeeType] = useState<'fixed' | 'percentage'>('percentage');
   const [brokerageFeeValue, setBrokerageFeeValue] = useState<number>(0);
   const [brokeragePayer, setBrokeragePayer] = useState<'producer' | 'customer' | 'both'>('producer');
@@ -425,61 +425,70 @@ export default function NewSalePage() {
         <aside className="calc-panel">
           <h2>Resumo Financeiro</h2>
           {calculation ? (
-            <dl>
-              <dt>Total de sacos</dt><dd>{calculation.totalBags}</dd>
-              <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
-              <dt>{saleType === 'venda_estoque' ? 'Valor bruto da Venda' : 'Total da Operação'}</dt>
-              <dd>{money(calculation.totalParticularAmount)}</dd>
-              {saleType === 'intermediacao' && (
-                <>
-                  <dt>Total Comissão</dt>
-                  <dd>{money(calculation.brokerageAmount ?? 0)}</dd>
-                </>
-              )}
-              {saleType === 'compra_venda' && (
-                <>
-                  <dt>Custo total dos lotes</dt>
-                  <dd>{money(calculation.totalCostAmount ?? 0)}</dd>
-                  <dt style={{ fontWeight: 'bold', color: '#2f7a45' }}>Lucro Bruto (Margem)</dt>
-                  <dd style={{ fontWeight: 'bold', color: '#2f7a45' }}>
-                    {money(calculation.totalParticularAmount - (calculation.totalCostAmount ?? 0))}
-                  </dd>
-                </>
-              )}
-              <dt style={{ fontWeight: 'bold' }}>FUNRURAL (Total {(calculation.funruralRate * 100).toFixed(2).replace('.', ',')}%)</dt>
-              <dd style={{ fontWeight: 'bold' }}>{money(calculation.funruralRetentionAmount)}</dd>
-              <div style={{ paddingLeft: '1rem', fontSize: '0.9em', color: '#666', borderLeft: '2px solid #eee', marginLeft: '0.5rem', marginBottom: '0.5rem', marginTop: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>↳ Previdência Social {(calculation.funruralSocialSecurityRate * 100).toFixed(2).replace('.', ',')}%</span>
-                  <span>{money(calculation.funruralSocialSecurityAmount)}</span>
+            <>
+              <dl>
+                <dt>Total de sacos</dt><dd>{calculation.totalBags}</dd>
+                <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
+                <dt>{saleType === 'venda_estoque' ? 'Valor bruto da Venda' : 'Total da Operação'}</dt>
+                <dd>{money(calculation.totalParticularAmount)}</dd>
+                {saleType === 'intermediacao' && (
+                  <>
+                    <dt>Total Comissão</dt>
+                    <dd>{money(calculation.brokerageAmount ?? 0)}</dd>
+                  </>
+                )}
+                {saleType === 'compra_venda' && (
+                  <>
+                    <dt>Custo total dos lotes</dt>
+                    <dd>{money(calculation.totalCostAmount ?? 0)}</dd>
+                    <dt style={{ fontWeight: 'bold', color: '#2f7a45' }}>Lucro Bruto (Margem)</dt>
+                    <dd style={{ fontWeight: 'bold', color: '#2f7a45' }}>
+                      {money(calculation.totalParticularAmount - (calculation.totalCostAmount ?? 0))}
+                    </dd>
+                  </>
+                )}
+                <dt style={{ fontWeight: 'bold' }}>FUNRURAL (Total {(calculation.funruralRate * 100).toFixed(2).replace('.', ',')}%)</dt>
+                <dd style={{ fontWeight: 'bold' }}>{money(calculation.funruralRetentionAmount)}</dd>
+                <div style={{ paddingLeft: '1rem', fontSize: '0.9em', color: '#666', borderLeft: '2px solid #eee', marginLeft: '0.5rem', marginBottom: '0.5rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span>↳ Previdência Social {(calculation.funruralSocialSecurityRate * 100).toFixed(2).replace('.', ',')}%</span>
+                    <span>{money(calculation.funruralSocialSecurityAmount)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span>↳ RAT {(calculation.funruralRatRate * 100).toFixed(2).replace('.', ',')}%</span>
+                    <span>{money(calculation.funruralRatAmount)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>↳ SENAR {(calculation.funruralSenarRate * 100).toFixed(2).replace('.', ',')}%</span>
+                    <span>{money(calculation.funruralSenarAmount)}</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>↳ RAT {(calculation.funruralRatRate * 100).toFixed(2).replace('.', ',')}%</span>
-                  <span>{money(calculation.funruralRatAmount)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>↳ SENAR {(calculation.funruralSenarRate * 100).toFixed(2).replace('.', ',')}%</span>
-                  <span>{money(calculation.funruralSenarAmount)}</span>
-                </div>
-              </div>
-              {saleType === 'venda_estoque' && (
-                <>
-                  <dt>Total a Receber do Cliente</dt><dd>{money(calculation.totalReceivableAmount)}</dd>
-                </>
-              )}
+                {saleType === 'venda_estoque' && (
+                  <>
+                    <dt>Total a Receber do Cliente</dt><dd>{money(calculation.totalReceivableAmount)}</dd>
+                  </>
+                )}
+                {(saleType === 'particular' || saleType === 'compra_venda') && (
+                  <>
+                    <dt>Total a Receber do Cliente</dt><dd>{money(calculation.totalReceivableAmount)}</dd>
+                  </>
+                )}
+              </dl>
+
               {saleType === 'particular' && (
-                <>
-                  <dt>Total a Receber do Cliente</dt><dd>{money(calculation.totalReceivableAmount)}</dd>
-                  <dt>Total Líquido Produtor</dt><dd>{money(calculation.producerNetAmount ?? 0)}</dd>
-                </>
+                <div className="payout-highlight-box">
+                  <span className="payout-label">Total Líquido Produtor</span>
+                  <span className="payout-value">{money(calculation.producerNetAmount ?? 0)}</span>
+                </div>
               )}
+
               {saleType === 'compra_venda' && (
-                <>
-                  <dt>Total a Receber do Cliente</dt><dd>{money(calculation.totalReceivableAmount)}</dd>
-                  <dt>A Pagar ao Produtor (Líquido)</dt><dd>{money(calculation.producerNetAmount ?? 0)}</dd>
-                </>
+                <div className="payout-highlight-box">
+                  <span className="payout-label">A Pagar ao Produtor (Líquido)</span>
+                  <span className="payout-value">{money(calculation.producerNetAmount ?? 0)}</span>
+                </div>
               )}
-            </dl>
+            </>
           ) : <p className="empty">Informe os valores para calcular.</p>}
           <button className="primary-action full" type="submit">Confirmar venda</button>
         </aside>

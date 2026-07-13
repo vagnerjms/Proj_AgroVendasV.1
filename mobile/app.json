@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "AgroVenda Broker",
+    "slug": "agrovenda-broker",
+    "version": "0.1.0",
+    "scheme": "agrovenda",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-router"]
+  }
+}

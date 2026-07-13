@@ -1,0 +1,177 @@
+.loja-report-wrapper {
+  background: #fff;
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+}
+
+.loja-header {
+  background-color: #2e7d32;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.loja-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.loja-title {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.loja-title h2 {
+  font-size: 2rem;
+  color: #2e7d32;
+  margin-bottom: 0.5rem;
+}
+
+.loja-params {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  background-color: #fff8e1;
+  padding: 0.5rem 2rem;
+  border: 1px solid #ffecb3;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.executive-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.summary-card {
+  border: 1px solid #cfd8dc;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-card.bg-green { background-color: #e8f5e9; }
+.summary-card.bg-yellow { background-color: #fff8e1; }
+.summary-card.bg-pink { background-color: #fce4ec; }
+.summary-card.bg-blue { background-color: #e3f2fd; }
+.summary-card.bg-gray { background-color: #f5f5f5; }
+
+.summary-card strong {
+  font-size: 1.5rem;
+  padding: 1rem;
+  display: block;
+}
+
+.summary-card span {
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border-top: 1px solid #cfd8dc;
+  background: rgba(255,255,255,0.5);
+  flex-grow: 1;
+}
+
+.section-title {
+  color: #2e7d32;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #2e7d32;
+  padding-bottom: 0.25rem;
+}
+
+.loja-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+}
+
+.loja-table th, .loja-table td {
+  border: 1px solid #cfd8dc;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.loja-table th {
+  background-color: #e8f5e9;
+  font-weight: 600;
+}
+
+.loja-table .header-green th {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.loja-table .header-light-green th {
+  background-color: #e8f5e9;
+  color: #333;
+}
+
+.loja-table .header-yellow th {
+  background-color: #fff8e1;
+  color: #333;
+}
+
+.totals-row td {
+  font-weight: bold;
+  background-color: #f5f5f5;
+}
+
+.destinatario-header {
+  background-color: #2e7d32;
+  color: white;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.loja-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.print-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.print-btn {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.back-btn {
+  background-color: #607d8b;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+@media print {
+  .print-controls { display: none !important; }
+  .loja-report-wrapper { padding: 0; }
+  body { background: #fff; }
+  @page { margin: 1cm; size: landscape; }
+}

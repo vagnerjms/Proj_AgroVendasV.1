@@ -1,3 +1,15 @@
+export function getApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl;
+    }
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:3001`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+}
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 export const apiBaseUrl = API_URL;
 
@@ -34,7 +46,8 @@ export async function authFetch(path: string, init: RequestInit = {}) {
     ...authHeaders(),
   };
 
-  return fetch(`${API_URL}${path}`, {
+  const baseUrl = getApiUrl();
+  return fetch(`${baseUrl}${path}`, {
     ...init,
     headers,
   });

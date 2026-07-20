@@ -36,6 +36,7 @@ export class UsersService {
       role: dto.role,
       active: dto.active,
       permissions: dto.permissions || [],
+      twoFactorEnabled: dto.twoFactorEnabled ?? true,
     });
 
     return this.sanitize(user.toObject());

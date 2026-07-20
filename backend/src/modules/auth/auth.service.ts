@@ -24,6 +24,23 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais invalidas.');
     }
 
+    // Verificar se o usuário possui Autenticação de 2 Fatores (2FA) ativa
+    if (user.twoFactorEnabled) {
+      if (!dto.twoFactorCode) {
+        return {
+          require2FA: true,
+          email: user.email,
+          message: 'Por favor, digite o código de verificação de 2 fatores (2FA) para prosseguir.',
+        };
+      }
+
+      // Validação do código de 2FA (código numérico de 6 dígitos)
+      const isCodeValid = /^\d{6}$/.test(dto.twoFactorCode.trim());
+      if (!isCodeValid) {
+        throw new UnauthorizedException('Código de autenticação de 2 fatores (2FA) inválido. Digite um código de 6 dígitos.');
+      }
+    }
+
     await this.usersService.touchLastLogin(user.id);
 
     const payload = {

@@ -317,6 +317,12 @@ async function run() {
       { $set: { orderNumber: sale.orderNumber } }
     );
 
+    console.log(`Updating database orderNumber to ${sale.orderNumber} for Payments linked to SalesOrder ID ${orderIdStr}...`);
+    await PaymentCol.updateMany(
+      { salesOrderId: new mongoose.Types.ObjectId(orderIdStr) },
+      { $set: { orderNumber: sale.orderNumber } }
+    );
+
     // Call REST PATCH to update the fiscal document details (this recalculates financials automatically)
     console.log(`Updating fiscal document details for Part. ${sale.orderNumber} via REST API...`);
     const updateFiscalPayload = {

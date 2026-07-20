@@ -9,8 +9,10 @@ export type AuthUser = {
 };
 
 export type LoginResponse = {
-  accessToken: string;
-  user: AuthUser;
+  accessToken?: string;
+  user?: AuthUser;
+  require2FA?: boolean;
+  message?: string;
 };
 
 export function getToken() {
@@ -85,9 +87,11 @@ export async function apiDelete<T>(path: string): Promise<T> {
   return response.json();
 }
 
-export async function login(email: string, password: string) {
-  const response = await apiPost<LoginResponse>('/auth/login', { email, password });
-  setAuthSession(response.accessToken, response.user);
+export async function login(email: string, password: string, twoFactorCode?: string) {
+  const response = await apiPost<LoginResponse>('/auth/login', { email, password, twoFactorCode });
+  if (response.accessToken) {
+    setAuthSession(response.accessToken, response.user);
+  }
   return response;
 }
 

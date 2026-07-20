@@ -26,6 +26,12 @@ export class User extends AuditableSchema {
   @Prop({ type: [String], default: [] })
   permissions!: string[];
 
+  @Prop({ type: Boolean, default: false })
+  twoFactorEnabled!: boolean;
+
+  @Prop({ type: String, select: false })
+  twoFactorSecret?: string;
+
   @Prop({ type: Date })
   lastLoginAt?: Date;
 }

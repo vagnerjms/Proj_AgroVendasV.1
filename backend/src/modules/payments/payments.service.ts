@@ -32,7 +32,7 @@ type SalesOrderForReceivable = {
 export class PaymentsService {
   constructor(@InjectModel(Payment.name) private readonly paymentModel: Model<Payment>) {}
 
-  findAll(filters: PaymentFilters = {}) {
+  async findAll(filters: PaymentFilters = {}) {
     const query: FilterQuery<Payment> = { isDeleted: false };
     if (filters.type) query.type = filters.type;
     if (filters.status) query.status = filters.status;
@@ -45,7 +45,18 @@ export class PaymentsService {
       if (filters.dueDateTo) query.dueDate.$lte = new Date(`${filters.dueDateTo}T23:59:59.999Z`);
     }
 
-    return this.paymentModel.find(query).limit(500).populate('salesOrderId customerId producerId').sort({ dueDate: 1, orderNumber: 1 }).lean();
+    const payments = await this.paymentModel
+      .find(query)
+      .limit(500)
+      .populate('salesOrderId purchaseOrderId customerId producerId')
+      .sort({ dueDate: 1, orderNumber: 1 })
+      .lean();
+
+    return payments.filter((p: any) => {
+      if (p.salesOrderId && (p.salesOrderId.isDeleted || p.salesOrderId.status === 'cancelled')) return false;
+      if (p.purchaseOrderId && (p.purchaseOrderId.isDeleted || p.purchaseOrderId.status === 'cancelled')) return false;
+      return true;
+    });
   }
 
   async findOne(id: string) {
@@ -276,14 +287,16 @@ export class PaymentsService {
   }
 
   async deleteForSalesOrder(salesOrderId: string) {
+    const sId = new Types.ObjectId(salesOrderId);
     await this.paymentModel.deleteMany({
-      salesOrderId: new Types.ObjectId(salesOrderId)
+      $or: [{ salesOrderId: sId }, { salesOrderId }]
     });
   }
 
   async deleteForPurchaseOrder(purchaseOrderId: string) {
+    const pId = new Types.ObjectId(purchaseOrderId);
     await this.paymentModel.deleteMany({
-      purchaseOrderId: new Types.ObjectId(purchaseOrderId)
+      $or: [{ purchaseOrderId: pId }, { purchaseOrderId }]
     });
   }
 
@@ -391,12 +404,18 @@ export class PaymentsService {
     return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 
-  private findDueAlerts(base: FilterQuery<Payment>, dueDate: FilterQuery<Payment>['dueDate']) {
-    return this.paymentModel
+  private async findDueAlerts(base: FilterQuery<Payment>, dueDate: FilterQuery<Payment>['dueDate']) {
+    const payments = await this.paymentModel
       .find({ ...base, dueDate })
-      .populate('salesOrderId customerId producerId')
+      .populate('salesOrderId purchaseOrderId customerId producerId')
       .sort({ dueDate: 1 })
       .lean();
+
+    return payments.filter((p: any) => {
+      if (p.salesOrderId && (p.salesOrderId.isDeleted || p.salesOrderId.status === 'cancelled')) return false;
+      if (p.purchaseOrderId && (p.purchaseOrderId.isDeleted || p.purchaseOrderId.status === 'cancelled')) return false;
+      return true;
+    });
   }
 
   private isOpen(payment: Payment) {

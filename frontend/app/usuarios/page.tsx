@@ -12,6 +12,7 @@ type User = {
   role: string;
   permissions?: string[];
   password?: string;
+  twoFactorEnabled?: boolean;
 };
 
 const MODULES = [
@@ -23,7 +24,7 @@ const MODULES = [
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<User>>({ role: 'broker', permissions: [] });
+  const [formData, setFormData] = useState<Partial<User>>({ role: 'broker', permissions: [], twoFactorEnabled: true });
 
   const loadUsers = async () => {
     try {
@@ -51,7 +52,7 @@ export default function UsuariosPage() {
     e.preventDefault();
     try {
       await apiPost('/users', formData);
-      setFormData({ role: 'broker', permissions: [] });
+      setFormData({ role: 'broker', permissions: [], twoFactorEnabled: true });
       setIsFormOpen(false);
       loadUsers();
     } catch (e) {
@@ -136,6 +137,17 @@ export default function UsuariosPage() {
                 </div>
               </div>
 
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label className="permission-checkbox" style={{ fontWeight: 600, color: '#16a34a' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.twoFactorEnabled ?? true}
+                    onChange={(e) => setFormData({ ...formData, twoFactorEnabled: e.target.checked })}
+                  />
+                  🔒 Ativar Autenticação de Dois Fatores (2FA em 2 Etapas)
+                </label>
+              </div>
+
               <div className="form-actions">
                 <button type="button" className="btn-secondary" onClick={() => setIsFormOpen(false)}>
                   Cancelar
@@ -156,6 +168,7 @@ export default function UsuariosPage() {
               <th>Nome</th>
               <th>E-mail</th>
               <th>Perfil</th>
+              <th>Segurança 2FA</th>
               <th>Permissões</th>
             </tr>
           </thead>
@@ -165,6 +178,15 @@ export default function UsuariosPage() {
                 <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td>{u.role}</td>
+                <td>
+                  {u.twoFactorEnabled ? (
+                    <span className="badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
+                      🔒 2FA Ativo
+                    </span>
+                  ) : (
+                    <span className="badge-empty">Desativado</span>
+                  )}
+                </td>
                 <td>
                   <div className="badges">
                     {(u.permissions || []).length === 0 && <span className="badge-empty">Nenhum</span>}

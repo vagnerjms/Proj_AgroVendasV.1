@@ -12,10 +12,35 @@ async function migrate() {
     await client.connect();
     const db = client.db();
     
-    console.log('Iniciando recalculo de todas as vendas e pagamentos...');
+    console.log('Limpando registros excluídos e resequenciando vendas...');
     
-    const sales = await db.collection('salesorders').find({ isDeleted: { $ne: true } }).toArray();
-    console.log(`Encontradas ${sales.length} vendas.`);
+    // 1. Deletar registros marcados como excluídos permanentemente
+    const delSales = await db.collection('salesorders').deleteMany({ isDeleted: true });
+    console.log(`Deletadas ${delSales.deletedCount} vendas deletadas do banco.`);
+    const delPayments = await db.collection('payments').deleteMany({ isDeleted: true });
+    console.log(`Deletados ${delPayments.deletedCount} pagamentos deletados do banco.`);
+    const delFiscal = await db.collection('fiscaldocuments').deleteMany({ isDeleted: true });
+    console.log(`Deletados ${delFiscal.deletedCount} documentos fiscais deletados do banco.`);
+
+    // 2. Resequenciar vendas ativas
+    const sales = await db.collection('salesorders')
+      .find({ isDeleted: { $ne: true } })
+      .sort({ date: 1, createdAt: 1 })
+      .toArray();
+      
+    console.log(`Resequenciando ${sales.length} vendas ativas a partir de VP001...`);
+    for (let i = 0; i < sales.length; i++) {
+      const sale = sales[i];
+      const newOrderNumber = `VP${String(i + 1).padStart(3, '0')}`;
+      console.log(`Atualizando venda ${sale.orderNumber} para ${newOrderNumber}`);
+      await db.collection('salesorders').updateOne(
+        { _id: sale._id },
+        { $set: { orderNumber: newOrderNumber } }
+      );
+      sale.orderNumber = newOrderNumber;
+    }
+
+    console.log(`Encontradas ${sales.length} vendas ativas.`);
 
     for (const sale of sales) {
       console.log(`Recalculando Venda: ${sale.orderNumber} - Tipo: ${sale.saleType}`);

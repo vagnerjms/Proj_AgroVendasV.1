@@ -106,8 +106,22 @@ export class SalesOrdersService {
     return order;
   }
 
+  async generateNextOrderNumber(): Promise<string> {
+    const lastOrder = await this.salesOrderModel
+      .findOne({ isDeleted: false })
+      .sort({ orderNumber: -1 })
+      .collation({ numericOrdering: true, locale: 'en' })
+      .lean();
+    if (!lastOrder || !lastOrder.orderNumber) {
+      return 'VP001';
+    }
+    const numPart = lastOrder.orderNumber.replace('VP', '');
+    const nextNum = (parseInt(numPart, 10) || 0) + 1;
+    return `VP${String(nextNum).padStart(3, '0')}`;
+  }
+
   async createDraft(date?: string) {
-    const orderNumber = await this.countersService.nextCode('sales-order-vp', 'VP', 3);
+    const orderNumber = await this.generateNextOrderNumber();
     const draft = await this.salesOrderModel.create({
       orderNumber,
       saleType: 'particular',
@@ -162,7 +176,7 @@ export class SalesOrdersService {
       return this.afterConfirm(updated._id.toString());
     }
 
-    const orderNumber = await this.countersService.nextCode('sales-order-vp', 'VP', 3);
+    const orderNumber = await this.generateNextOrderNumber();
     const created = await this.salesOrderModel.create({
       ...payload,
       orderNumber,

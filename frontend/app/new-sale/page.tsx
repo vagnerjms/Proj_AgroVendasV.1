@@ -371,19 +371,33 @@ export default function NewSalePage() {
               <button type="button" onClick={addItem} className="btn outline" style={{ fontSize: '13px' }}>+ Adicionar Produto</button>
             </div>
             <div className="items-table" style={{ marginTop: '1rem' }}>
-              <div className={`items-row items-head`} style={{ gridTemplateColumns: saleType === 'compra_venda' ? '2fr 1fr 1fr 1.5fr 1.5fr 1.5fr 40px' : '2fr 1fr 1fr 1.5fr 1.5fr 40px' }}>
+              <div className={`items-row items-head`} style={{ gridTemplateColumns: saleType === 'compra_venda' ? '2fr 1.2fr 1fr 1.5fr 1.5fr 1.5fr 40px' : '2fr 1.2fr 1fr 1.5fr 1.5fr 40px' }}>
                 <span>Produto</span>
-                <span>Sacos</span>
+                <span>Qtd</span>
                 <span>Kg</span>
-                <span>Valor por saca</span>
-                {saleType === 'compra_venda' && <span>Custo por saca</span>}
+                <span>Valor Unit.</span>
+                {saleType === 'compra_venda' && <span>Custo Unit.</span>}
                 <span>Total</span>
                 <span></span>
               </div>
               {items.map((item, index) => {
                 const calculated = calculation?.items[index];
+                const selectedProduct = products.find((p: any) => p._id === item.productId) as any;
+                const getUnitSuffix = (product: any) => {
+                  if (!product) return 'sc';
+                  const unit = product.defaultUnit || 'saco';
+                  if (unit === 'caixa') return 'cx';
+                  if (unit === 'saco') return 'sc';
+                  if (unit === 'saca') return 'sc';
+                  if (unit === 'pacote') return 'pct';
+                  if (unit === 'kg') return 'kg';
+                  if (unit === 'unidade') return 'un';
+                  if (unit === 'tonelada') return 't';
+                  return unit;
+                };
+
                 return (
-                  <div className="items-row" key={item.id} style={{ gridTemplateColumns: saleType === 'compra_venda' ? '2fr 1fr 1fr 1.5fr 1.5fr 1.5fr 40px' : '2fr 1fr 1fr 1.5fr 1.5fr 40px' }}>
+                  <div className="items-row" key={item.id} style={{ gridTemplateColumns: saleType === 'compra_venda' ? '2fr 1.2fr 1fr 1.5fr 1.5fr 1.5fr 40px' : '2fr 1.2fr 1fr 1.5fr 1.5fr 40px' }}>
                     <select 
                       value={item.productId} 
                       onChange={(event) => updateItem(item.id, 'productId', event.target.value)}
@@ -392,17 +406,21 @@ export default function NewSalePage() {
                       <option value="">Selecione...</option>
                       {products.map((product) => <option key={product._id} value={product._id}>{product.name}</option>)}
                     </select>
-                    <input
-                      aria-label={`Sacos linha ${index + 1}`}
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={item.quantityBags}
-                      onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        aria-label={`Qtd linha ${index + 1}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.quantityBags}
+                        onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>{getUnitSuffix(selectedProduct)}</span>
+                    </div>
                     <span>{formatKg(calculated?.quantityKg ?? item.quantityBags * item.bagWeightKg)}</span>
                     <NumericFormat
-                      aria-label={`Valor por saco linha ${index + 1}`}
+                      aria-label={`Valor unitário linha ${index + 1}`}
                       value={item.pricePerBag}
                       onValueChange={(values) => updateItem(item.id, 'pricePerBag', String(values.floatValue ?? 0))}
                       prefix="R$ "
@@ -414,7 +432,7 @@ export default function NewSalePage() {
                     />
                     {saleType === 'compra_venda' && (
                       <NumericFormat
-                        aria-label={`Custo por saco linha ${index + 1}`}
+                        aria-label={`Custo unitário linha ${index + 1}`}
                         value={item.costPerBag}
                         onValueChange={(values) => updateItem(item.id, 'costPerBag', String(values.floatValue ?? 0))}
                         prefix="R$ "
@@ -439,7 +457,7 @@ export default function NewSalePage() {
           {calculation ? (
             <>
               <dl>
-                <dt>Total de sacos</dt><dd>{calculation.totalBags}</dd>
+                <dt>Total de volumes</dt><dd>{calculation.totalBags}</dd>
                 <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
                 <dt>{saleType === 'venda_estoque' ? 'Valor bruto da Venda' : 'Total da Operação'}</dt>
                 <dd>{money(calculation.totalParticularAmount)}</dd>

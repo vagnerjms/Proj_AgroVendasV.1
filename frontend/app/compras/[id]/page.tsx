@@ -100,7 +100,7 @@ export default function PurchaseDetailPage() {
 
       <section className="summary-grid">
         <article className="summary-card">
-          <span>Total de sacos</span>
+          <span>Total de volumes</span>
           <strong>{order.totalBags ?? 0}</strong>
         </article>
         <article className="summary-card">
@@ -139,22 +139,37 @@ export default function PurchaseDetailPage() {
         <div className="items-table">
           <div className="items-row items-head detail-items-row">
             <span>Produto</span>
-            <span>Sacos</span>
-            <span>Kg por saca</span>
+            <span>Qtd</span>
+            <span>Peso Unit.</span>
             <span>Total kg</span>
-            <span>Custo por saca</span>
+            <span>Custo Unit.</span>
             <span>Total</span>
           </div>
-          {order.items.map((item, index) => (
-            <div className="items-row detail-items-row" key={index}>
-              <strong>{item.productId?.name ?? '-'}</strong>
-              <span>{item.quantityBags}</span>
-              <span>{formatKg(item.bagWeightKg)}</span>
-              <span>{formatKg(item.quantityKg)}</span>
-              <span>{money(item.costPerBag)}</span>
-              <span>{money(item.lineTotal)}</span>
-            </div>
-          ))}
+          {order.items.map((item, index) => {
+            const getUnitSuffix = (product: any) => {
+              if (!product) return 'sc';
+              const unit = product.defaultUnit || 'saco';
+              if (unit === 'caixa') return 'cx';
+              if (unit === 'saco') return 'sc';
+              if (unit === 'saca') return 'sc';
+              if (unit === 'pacote') return 'pct';
+              if (unit === 'kg') return 'kg';
+              if (unit === 'unidade') return 'un';
+              if (unit === 'tonelada') return 't';
+              return unit;
+            };
+
+            return (
+              <div className="items-row detail-items-row" key={index}>
+                <strong>{item.productId?.name ?? '-'}</strong>
+                <span>{item.quantityBags} {getUnitSuffix(item.productId)}</span>
+                <span>{formatKg(item.bagWeightKg)}</span>
+                <span>{formatKg(item.quantityKg)}</span>
+                <span>{money(item.costPerBag)}</span>
+                <span>{money(item.lineTotal)}</span>
+              </div>
+            );
+          })}
         </div>
       </section>
 

@@ -244,14 +244,28 @@ export default function NewPurchasePage() {
             <div className="items-table" style={{ marginTop: '1rem' }}>
               <div className="items-row items-head">
                 <span>Produto</span>
-                <span>Sacos</span>
+                <span>Qtd</span>
                 <span>Kg</span>
-                <span>Custo por saca</span>
+                <span>Custo Unit.</span>
                 <span>Total</span>
                 <span></span>
               </div>
               {items.map((item, index) => {
                 const calculated = calculation?.items[index];
+                const selectedProduct = products.find((p: any) => p._id === item.productId) as any;
+                const getUnitSuffix = (product: any) => {
+                  if (!product) return 'sc';
+                  const unit = product.defaultUnit || 'saco';
+                  if (unit === 'caixa') return 'cx';
+                  if (unit === 'saco') return 'sc';
+                  if (unit === 'saca') return 'sc';
+                  if (unit === 'pacote') return 'pct';
+                  if (unit === 'kg') return 'kg';
+                  if (unit === 'unidade') return 'un';
+                  if (unit === 'tonelada') return 't';
+                  return unit;
+                };
+
                 return (
                   <div className="items-row" key={item.id}>
                     <select 
@@ -262,17 +276,21 @@ export default function NewPurchasePage() {
                       <option value="">Selecione...</option>
                       {products.map((product) => <option key={product._id} value={product._id}>{product.name}</option>)}
                     </select>
-                    <input
-                      aria-label={`Sacos linha ${index + 1}`}
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={item.quantityBags}
-                      onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        aria-label={`Qtd linha ${index + 1}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.quantityBags}
+                        onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>{getUnitSuffix(selectedProduct)}</span>
+                    </div>
                     <span>{formatKg(calculated?.quantityKg ?? item.quantityBags * item.bagWeightKg)}</span>
                     <input
-                      aria-label={`Custo por saco linha ${index + 1}`}
+                      aria-label={`Custo unitário linha ${index + 1}`}
                       type="number"
                       min="0"
                       step="0.01"
@@ -293,7 +311,7 @@ export default function NewPurchasePage() {
           {calculation ? (
             <>
               <dl>
-                <dt>Total de sacos comprados</dt><dd>{calculation.totalBags}</dd>
+                <dt>Total de volumes comprados</dt><dd>{calculation.totalBags}</dd>
                 <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
                 <dt>Custo total Bruto</dt>
                 <dd>{money(calculation.totalAmount)}</dd>

@@ -219,6 +219,10 @@ export default function NewSalePage() {
           <h1>
             {saleType === 'venda_estoque'
               ? 'Venda de Estoque Próprio'
+              : saleType === 'intermediacao'
+              ? 'Venda por Corretagem / Intermediação'
+              : saleType === 'particular'
+              ? 'Venda Particular / Repasse Direto'
               : 'Revenda Padrão (Compra e Venda)'}
           </h1>
         </div>
@@ -233,6 +237,8 @@ export default function NewSalePage() {
               <label>Tipo de Operação
                 <select value={saleType} onChange={(event) => setSaleType(event.target.value as any)}>
                   <option value="compra_venda">Revenda Padrão (Compra e Venda)</option>
+                  <option value="intermediacao">Intermediação (Corretagem / Comissão)</option>
+                  <option value="particular">Venda Particular / Repasse Direto</option>
                   <option value="venda_estoque">Venda de Estoque Próprio</option>
                 </select>
               </label>

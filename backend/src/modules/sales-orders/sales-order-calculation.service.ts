@@ -11,7 +11,9 @@ export class SalesOrderCalculationService {
       const quantityBags = item.quantityBags ?? 0;
       const pricePerBag = item.pricePerBag ?? 0;
       const costPerBag = (item as any).costPerBag ?? 0;
-      const quantityKg = this.roundQuantity(quantityBags * bagWeightKg);
+      const quantityKg = (item as any).quantityKg !== undefined && (item as any).quantityKg !== null && (item as any).quantityKg !== 0
+        ? this.roundQuantity((item as any).quantityKg)
+        : this.roundQuantity(quantityBags * bagWeightKg);
       const lineTotal = this.roundMoney(quantityBags * pricePerBag);
       const lineCostTotal = this.roundMoney(quantityBags * costPerBag);
 

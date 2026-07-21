@@ -16,6 +16,7 @@ type SaleItem = {
   bagWeightKg: number;
   pricePerBag: number;
   costPerBag: number;
+  quantityKg?: number;
 };
 
 type CalculationItem = Omit<SaleItem, 'id'> & {
@@ -114,12 +115,13 @@ export default function NewSalePage() {
       brokerageFeeType,
       brokerageFeeValue,
       brokeragePayer,
-      items: items.map(({ productId, quantityBags, bagWeightKg, pricePerBag, costPerBag }) => ({
+      items: items.map(({ productId, quantityBags, bagWeightKg, pricePerBag, costPerBag, quantityKg }) => ({
         productId,
         quantityBags,
         bagWeightKg,
         pricePerBag,
         costPerBag: saleType === 'compra_venda' ? costPerBag : undefined,
+        quantityKg,
       })),
     })
       .then(setCalculation)
@@ -158,9 +160,12 @@ export default function NewSalePage() {
         if (field === 'productId') {
           const selectedProd = products.find((p: any) => p._id === value) as any;
           const defaultWeight = selectedProd?.defaultWeightKg || item.bagWeightKg || 20;
-          return { ...item, productId: value, bagWeightKg: defaultWeight };
+          return { ...item, productId: value, bagWeightKg: defaultWeight, quantityKg: undefined };
         }
-        return { ...item, [field]: Number(value) };
+        if (field === 'quantityBags') {
+          return { ...item, quantityBags: Number(value), quantityKg: undefined };
+        }
+        return { ...item, [field]: value === '' ? undefined : Number(value) };
       }),
     );
   }
@@ -189,12 +194,13 @@ export default function NewSalePage() {
         termDays,
         dueDate,
         dueDateManual: paymentOption === 'custom',
-        items: items.map(({ productId, quantityBags, bagWeightKg, pricePerBag, costPerBag }) => ({
+        items: items.map(({ productId, quantityBags, bagWeightKg, pricePerBag, costPerBag, quantityKg }) => ({
           productId,
           quantityBags,
           bagWeightKg,
           pricePerBag,
           costPerBag: saleType === 'compra_venda' ? costPerBag : undefined,
+          quantityKg,
         })),
         notes,
       });
@@ -421,7 +427,19 @@ export default function NewSalePage() {
                       />
                       <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>{getUnitSuffix(selectedProduct)}</span>
                     </div>
-                    <span>{formatKg(calculated?.quantityKg ?? item.quantityBags * item.bagWeightKg)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        aria-label={`KG linha ${index + 1}`}
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        placeholder={String(calculated?.quantityKg ?? item.quantityBags * item.bagWeightKg)}
+                        value={item.quantityKg !== undefined ? item.quantityKg : ''}
+                        onChange={(event) => updateItem(item.id, 'quantityKg', event.target.value)}
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>kg</span>
+                    </div>
                     <NumericFormat
                       aria-label={`Valor unitário linha ${index + 1}`}
                       value={item.pricePerBag}

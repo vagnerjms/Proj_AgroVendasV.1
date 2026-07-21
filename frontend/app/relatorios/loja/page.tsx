@@ -76,56 +76,24 @@ function LojaReportContent() {
   }
 
   const getGrossAmount = (s: any) => {
-    if (viewMode === 'produtor') {
-      if (s.saleType === 'compra_venda' || s.saleType === 'particular') {
-        return s.totalCostAmount ?? s.totalParticularAmount ?? 0;
-      }
-      if (s.saleType === 'intermediacao') {
-        return s.totalParticularAmount ?? 0; // Mostrar o volume total negociado pelo produtor na intermediação
-      }
-      return 0;
-    }
     return s.totalParticularAmount ?? 0;
   };
 
   const getNetAmount = (s: any) => {
-    if (s.saleType === 'intermediacao') {
-      if (viewMode === 'produtor') return 0;
-      return s.brokerageAmount || 0; // Receber apenas a comissão
-    }
-    if (viewMode === 'produtor') {
-      return s.producerNetAmount ?? 0;
-    }
     return s.totalReceivableAmount ?? 0;
   };
 
   const getRecebidoAmount = (s: any) => {
-    if (viewMode === 'produtor') {
-      return s.pagoProdutor ?? 0;
-    }
     return s.recebido ?? 0;
   };
 
   const getSaldoAmount = (s: any) => {
-    if (viewMode === 'produtor') {
-      return s.saldoProdutor ?? 0;
-    }
     return s.saldo ?? 0;
   };
 
   const getFunruralAmount = (s: any) => {
-    if (s.saleType === 'intermediacao') {
-      return 0; // Corretora não retém Funrural de comissão
-    }
-    if (viewMode === 'produtor') {
-      if (s.saleType === 'compra_venda') {
-        return Math.max(0, (s.totalCostAmount || 0) - (s.producerNetAmount || 0));
-      }
-      return s.funruralRetentionAmount || 0;
-    }
-    return s.funruralRetentionAmount || 0;
+    return s.funruralRetentionAmount ?? 0;
   };
-
 
   // Common Totals
   const totalVendas = visibleData.length;
@@ -247,7 +215,7 @@ function LojaReportContent() {
 
 
 
-      <div className="executive-summary" style={{ gridTemplateColumns: viewMode === 'geral' ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)' }}>
+      <div className="executive-summary" style={{ gridTemplateColumns: (viewMode === 'geral' || viewMode === 'produtor') ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)' }}>
         <div className="summary-card bg-green">
           <strong>{totalVendas}</strong>
           <span>Vendas</span>
@@ -265,17 +233,17 @@ function LojaReportContent() {
           <span>Valor Bruto Total</span>
         </div>
         <div className="summary-card bg-yellow">
-          <strong>{money(viewMode === 'produtor' ? totalPagar : totalReceber)}</strong>
-          <span>{viewMode === 'produtor' ? 'Total a Pagar' : 'Total a Receber'}</span>
+          <strong>{money(totalReceber)}</strong>
+          <span>Total a Receber</span>
         </div>
-        {viewMode === 'geral' && (
+        {(viewMode === 'geral' || viewMode === 'produtor') && (
           <div className="summary-card bg-pink">
             <strong>{money(totalPagar)}</strong>
             <span>Total a Pagar</span>
           </div>
         )}
         
-        {viewMode === 'geral' && (
+        {(viewMode === 'geral' || viewMode === 'produtor') && (
           <div className="summary-card bg-pink">
             <strong>{money(totalFunrural)}</strong>
             <span>FUNRURAL</span>
@@ -331,19 +299,18 @@ function LojaReportContent() {
               {viewMode === 'cliente' && <th>Kg</th>}
               
               <th>{viewMode === 'produtor' ? 'Valor venda' : 'Bruto Venda'}</th>
-              <th>{viewMode === 'produtor' ? 'Líq. a Pagar' : 'Líq. a Receber'}</th>
-              {viewMode === 'geral' && <th>Venc. Receber</th>}
-              {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
-              {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
-              {viewMode === 'produtor' && <th>Vencimento</th>}
-              {viewMode === 'geral' && <th>FUNRURAL</th>}
+              <th>Líq. a Receber</th>
+              {(viewMode === 'geral' || viewMode === 'produtor') && <th>Venc. Receber</th>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <th>FUNRURAL</th>}
               <th>Valor NFe's</th>
 
               {viewMode === 'geral' && <th style={{background: '#b39ddb', color: '#333'}}>Lucro Líquido</th>}
 
-              {(viewMode === 'cliente' || viewMode === 'geral') && <th>Recebido</th>}
+              {(viewMode === 'cliente' || viewMode === 'geral' || viewMode === 'produtor') && <th>Recebido</th>}
               {viewMode === 'cliente' && <th>Vencimento</th>}
-              {(viewMode === 'cliente' || viewMode === 'geral') && <th>Status</th>}
+              {(viewMode === 'cliente' || viewMode === 'geral' || viewMode === 'produtor') && <th>Status</th>}
             </tr>
           </thead>
           <tbody>
@@ -366,25 +333,24 @@ function LojaReportContent() {
                   
                   <td>{money(getGrossAmount(s))}</td>
                   <td>{money(getNetAmount(s))}</td>
-                  {viewMode === 'geral' && <td>{formatDate(s.dueDate)}</td>}
-                  {viewMode === 'geral' && <td>{money(s.producerNetAmount || 0)}</td>}
-                  {viewMode === 'geral' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
-                  {viewMode === 'produtor' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
-                  {viewMode === 'geral' && <td>{money(getFunruralAmount(s))}</td>}
+                  {(viewMode === 'geral' || viewMode === 'produtor') && <td>{formatDate(s.dueDate)}</td>}
+                  {(viewMode === 'geral' || viewMode === 'produtor') && <td>{money(s.producerNetAmount || 0)}</td>}
+                  {(viewMode === 'geral' || viewMode === 'produtor') && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
+                  {(viewMode === 'geral' || viewMode === 'produtor') && <td>{money(getFunruralAmount(s))}</td>}
                   <td>{money(s.nfeValue)}</td>
 
                   {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
 
-                  {(viewMode === 'cliente' || viewMode === 'geral') && <td>{money(getRecebidoAmount(s))}</td>}
+                  {(viewMode === 'cliente' || viewMode === 'geral' || viewMode === 'produtor') && <td>{money(getRecebidoAmount(s))}</td>}
                   {viewMode === 'cliente' && <td>{formatDate(s.dueDate)}</td>}
-                  {(viewMode === 'cliente' || viewMode === 'geral') && <td>{getSaldoAmount(s) > 0 ? 'Em aberto' : 'Pago'}</td>}
+                  {(viewMode === 'cliente' || viewMode === 'geral' || viewMode === 'produtor') && <td>{getSaldoAmount(s) > 0 ? 'Em aberto' : 'Pago'}</td>}
                 </tr>
               )
             })}
             
             {/* Linha de Totais Finais */}
             <tr className="totals-row">
-              <td colSpan={viewMode === 'geral' ? 4 : 3}>TOTAL</td>
+              <td colSpan={(viewMode === 'geral' || viewMode === 'produtor') ? 4 : 3}>TOTAL</td>
               
               {uniqueProducts.map((prodName) => {
                 const qty = getProductTotalQty(prodName);
@@ -400,18 +366,17 @@ function LojaReportContent() {
               
               <td>{money(totalParticular)}</td>
               <td>{money(totalReceber)}</td>
-              {viewMode === 'geral' && <td></td>}
-              {viewMode === 'geral' && <td>{money(totalPagar)}</td>}
-              {viewMode === 'geral' && <td></td>}
-              {viewMode === 'produtor' && <td></td>}
-              {viewMode === 'geral' && <td>{money(totalFunrural)}</td>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <td></td>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <td>{money(totalPagar)}</td>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <td></td>}
+              {(viewMode === 'geral' || viewMode === 'produtor') && <td>{money(totalFunrural)}</td>}
               <td>{money(totalNFe)}</td>
 
               {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: totalLucro < 0 ? 'red' : 'green'}}>{money(totalLucro)}</td>}
 
-              {(viewMode === 'cliente' || viewMode === 'geral') && <td>{money(totalRecebido)}</td>}
+              {(viewMode === 'cliente' || viewMode === 'geral' || viewMode === 'produtor') && <td>{money(totalRecebido)}</td>}
               {viewMode === 'cliente' && <td></td>}
-              {(viewMode === 'cliente' || viewMode === 'geral') && <td></td>}
+              {(viewMode === 'cliente' || viewMode === 'geral' || viewMode === 'produtor') && <td></td>}
             </tr>
           </tbody>
         </table>

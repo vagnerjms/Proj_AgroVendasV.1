@@ -71,9 +71,12 @@ async function migrate() {
         const weight = Number(item.bagWeightKg) || 25;
         const price = Number(item.pricePerBag) || 0;
         const cost = Number(item.costPerBag) || 0;
+        const itemQtyKg = item.quantityKg !== undefined && item.quantityKg !== null && item.quantityKg !== 0
+          ? Number(item.quantityKg)
+          : roundMoney(qty * weight);
 
         totalBags += qty;
-        totalKg += roundMoney(qty * weight);
+        totalKg += itemQtyKg;
         totalParticularAmount += roundMoney(qty * price);
         totalCostAmount += roundMoney(qty * cost);
 
@@ -81,6 +84,7 @@ async function migrate() {
           ...item,
           quantityBags: qty,
           bagWeightKg: weight,
+          quantityKg: itemQtyKg,
           pricePerBag: price,
           costPerBag: cost,
           totalPrice: roundMoney(qty * price),

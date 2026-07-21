@@ -76,13 +76,12 @@ function LojaReportContent() {
   }
 
   const getGrossAmount = (s: any) => {
-    if (s.saleType === 'intermediacao') {
-      if (viewMode === 'produtor') return 0;
-      return s.brokerageAmount || 0; // Para corretagem, o faturamento da corretora é apenas a comissão!
-    }
     if (viewMode === 'produtor') {
       if (s.saleType === 'compra_venda' || s.saleType === 'particular') {
         return s.totalCostAmount ?? s.totalParticularAmount ?? 0;
+      }
+      if (s.saleType === 'intermediacao') {
+        return s.totalParticularAmount ?? 0; // Mostrar o volume total negociado pelo produtor na intermediação
       }
       return 0;
     }
@@ -251,7 +250,7 @@ function LojaReportContent() {
         <span>Período: <strong>{start ? formatDate(start) : 'Sempre'} até {end ? formatDate(end) : 'Sempre'}</strong></span>
         <span>Unidade: <strong>Saco</strong></span>
         <span>Conversão: <strong>1 saco = 25 kg</strong></span>
-        <span>FUNRURAL: <strong>1,50%</strong></span>
+        <span>FUNRURAL: <strong>1,63%</strong></span>
       </div>
 
       <div className="executive-summary" style={{ gridTemplateColumns: viewMode === 'geral' ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)' }}>

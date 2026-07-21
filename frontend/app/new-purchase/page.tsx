@@ -297,7 +297,7 @@ export default function NewPurchasePage() {
                 <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
                 <dt>Custo total Bruto</dt>
                 <dd>{money(calculation.totalAmount)}</dd>
-                <dt>FUNRURAL 1,50%</dt><dd>{money(calculation.funruralRetentionAmount)}</dd>
+                <dt>FUNRURAL 1,63%</dt><dd>{money(calculation.funruralRetentionAmount)}</dd>
               </dl>
               <div className="payout-highlight-box">
                 <span className="payout-label">Líquido a Pagar ao Produtor</span>

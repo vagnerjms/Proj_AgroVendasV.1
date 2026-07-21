@@ -164,10 +164,10 @@ export default function PurchaseDetailPage() {
           <dt>Total em kg</dt><dd>{formatKg(order.totalKg ?? 0)}</dd>
           <dt>Custo Bruto</dt>
           <dd>{money(order.totalAmount ?? 0)}</dd>
-          <dt>FUNRURAL 1,50%</dt><dd>{money(order.funruralRetentionAmount ?? 0)}</dd>
-          <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>Previdência Social 1,20%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralSocialSecurityAmount ?? 0)}</dd>
+          <dt>FUNRURAL 1,63%</dt><dd>{money(order.funruralRetentionAmount ?? 0)}</dd>
+          <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>Previdência Social 1,30%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralSocialSecurityAmount ?? 0)}</dd>
           <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>RAT 0,10%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralRatAmount ?? 0)}</dd>
-          <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>SENAR 0,20%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralSenarAmount ?? 0)}</dd>
+          <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>SENAR 0,23%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralSenarAmount ?? 0)}</dd>
           <dt>Líquido a Pagar ao Produtor</dt><dd>{money(order.producerNetAmount ?? 0)}</dd>
         </dl>
       </section>

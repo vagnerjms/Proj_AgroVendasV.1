@@ -15,8 +15,11 @@ export class Product extends AuditableSchema {
   @Prop({ type: String, trim: true })
   variety?: string;
 
-  @Prop({ type: String, required: true, enum: ['kg', 'caixa', 'saca', 'tonelada', 'unidade'], default: 'kg' })
+  @Prop({ type: String, required: true, enum: ['kg', 'caixa', 'saco', 'saca', 'tonelada', 'unidade', 'pacote'], default: 'caixa' })
   defaultUnit!: string;
+
+  @Prop({ type: Number, default: 20, min: 0 })
+  defaultWeightKg?: number;
 
   @Prop({ type: Boolean, default: true, index: true })
   active!: boolean;

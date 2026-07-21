@@ -125,9 +125,15 @@ export default function NewPurchasePage() {
 
   function updateItem(id: string, field: keyof PurchaseItem, value: string) {
     setItems((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, [field]: field === 'productId' ? value : Number(value) } : item,
-      ),
+      current.map((item) => {
+        if (item.id !== id) return item;
+        if (field === 'productId') {
+          const selectedProd = products.find((p: any) => p._id === value) as any;
+          const defaultWeight = selectedProd?.defaultWeightKg || item.bagWeightKg || 20;
+          return { ...item, productId: value, bagWeightKg: defaultWeight };
+        }
+        return { ...item, [field]: Number(value) };
+      }),
     );
   }
 

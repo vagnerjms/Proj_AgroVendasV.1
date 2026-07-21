@@ -14,8 +14,11 @@ export class CreateProductDto {
   variety?: string;
 
   @IsOptional()
-  @IsIn(['kg', 'caixa', 'saca', 'tonelada', 'unidade'])
-  defaultUnit = 'kg';
+  @IsIn(['kg', 'caixa', 'saco', 'saca', 'tonelada', 'unidade', 'pacote'])
+  defaultUnit = 'caixa';
+
+  @IsOptional()
+  defaultWeightKg?: number;
 
   @IsOptional()
   @IsBoolean()

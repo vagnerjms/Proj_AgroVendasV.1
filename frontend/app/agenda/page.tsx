@@ -58,8 +58,14 @@ export default function AgendaPage() {
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [settleMethod, setSettleMethod] = useState<string>('pix');
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  const [showMobileModal, setShowMobileModal] = useState(false);
+
+  const getMobileAgendaUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.protocol}//${window.location.host}/agenda`;
+    }
+    return '/agenda';
+  };
 
   // Verificar suporte e estado de permissão de notificação do celular
   useEffect(() => {
@@ -106,6 +112,8 @@ export default function AgendaPage() {
       }
     }
   };
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
   const loadData = async () => {
     setLoading(true);
@@ -345,6 +353,14 @@ export default function AgendaPage() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn-calendar-nav"
+            onClick={() => setShowMobileModal(true)}
+            style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534', fontWeight: 600 }}
+          >
+            📱 Abrir / Criar App no Celular
+          </button>
           <button
             type="button"
             className={`btn-calendar-nav ${notificationPermission === 'granted' ? 'active' : ''}`}
@@ -677,6 +693,53 @@ export default function AgendaPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Popup de Atalho Direto no Celular */}
+      {showMobileModal && (
+        <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, padding: '16px' }}>
+          <div className="panel" style={{ width: '100%', maxWidth: '480px', background: '#fff', borderRadius: '12px', padding: '24px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 8px 0', color: '#0f172a' }}>
+              📱 Abrir a Agenda Direto no Celular
+            </h2>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Abra a Agenda diretamente no seu smartphone e crie um ícone de aplicativo na tela inicial do seu celular.
+            </p>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginBottom: '4px' }}>
+                🔗 Endereço de Acesso Direto à Agenda:
+              </div>
+              <input
+                type="text"
+                readOnly
+                value={getMobileAgendaUrl()}
+                style={{ width: '100%', padding: '8px', fontSize: '13px', fontWeight: 600, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+            </div>
+
+            <div style={{ textAlign: 'left', fontSize: '13px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontWeight: 700, color: '#16a34a' }}>💡 Como criar o ícone de App "AgroAgenda" no celular:</div>
+              <div>
+                <strong>🤖 No Android (Chrome):</strong> Abra o link no celular ➔ toque nos 3 pontinhos (⋮) no canto superior ➔ selecione <em>"Adicionar à tela inicial"</em>.
+              </div>
+              <div>
+                <strong>🍎 No iPhone (Safari):</strong> Abra o link no celular ➔ toque no botão de Compartilhar (⎋) na barra inferior ➔ selecione <em>"Adicionar à Tela de Início"</em>.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button
+                type="button"
+                className="primary-action"
+                onClick={() => setShowMobileModal(false)}
+              >
+                Entendido!
+              </button>
+            </div>
           </div>
         </div>
       )}

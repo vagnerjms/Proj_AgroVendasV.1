@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import { apiGet, apiPost } from '../../lib/api';
 
 type Option = { _id: string; name: string; city?: string; state?: string };
@@ -56,6 +58,7 @@ const paymentOptions = [
 const today = new Date().toISOString().slice(0, 10);
 
 export default function NewPurchasePage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Option[]>([]);
   const [producers, setProducers] = useState<Option[]>([]);
   const [date, setDate] = useState(today);
@@ -139,10 +142,9 @@ export default function NewPurchasePage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage('');
 
     if (items.some(item => !item.productId)) {
-      setMessage('Selecione o produto para todos os itens.');
+      toast.error('Selecione o produto para todos os itens.');
       return;
     }
 
@@ -163,9 +165,10 @@ export default function NewPurchasePage() {
         })),
         notes,
       });
-      setMessage(`Compra ${created.orderNumber} confirmada com sucesso.`);
+      toast.success(`Compra ${created.orderNumber} confirmada com sucesso.`);
+      router.push(`/compras/${created._id}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Erro ao confirmar compra.');
+      toast.error(error instanceof Error ? error.message : 'Erro ao confirmar compra.');
     }
   }
 

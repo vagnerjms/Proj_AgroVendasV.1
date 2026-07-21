@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { toast } from 'react-toastify';
@@ -63,6 +64,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 
 export default function NewSalePage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Option[]>([]);
   const [producers, setProducers] = useState<Option[]>([]);
   const [customers, setCustomers] = useState<Option[]>([]);
@@ -212,6 +214,7 @@ export default function NewSalePage() {
       }
 
       toast.success(`Venda ${created.orderNumber} confirmada com sucesso.`);
+      router.push(`/vendas/${created._id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao confirmar venda.');
     }

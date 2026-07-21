@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
@@ -23,6 +23,9 @@ type Payment = {
   customerId?: string | Customer;
   customerName?: string;
   customerWhatsapp?: string;
+  producerId?: string | Customer;
+  producerName?: string;
+  producerWhatsapp?: string;
   amount: number;
   paidAmount: number;
   balanceAmount: number;
@@ -236,14 +239,32 @@ function getCustomerName(payment: Payment) {
   if (typeof payment.customerId === 'object' && payment.customerId?.name) {
     return payment.customerId.name;
   }
-  return payment.customerName ?? '-';
+  if (payment.customerName) {
+    return payment.customerName;
+  }
+  if (typeof payment.producerId === 'object' && payment.producerId?.name) {
+    return `${payment.producerId.name} (Produtor)`;
+  }
+  if (payment.producerName) {
+    return `${payment.producerName} (Produtor)`;
+  }
+  return '-';
 }
 
 function getCustomerWhatsapp(payment: Payment) {
   if (typeof payment.customerId === 'object' && payment.customerId?.whatsapp) {
     return payment.customerId.whatsapp;
   }
-  return payment.customerWhatsapp;
+  if (payment.customerWhatsapp) {
+    return payment.customerWhatsapp;
+  }
+  if (typeof payment.producerId === 'object' && payment.producerId?.whatsapp) {
+    return payment.producerId.whatsapp;
+  }
+  if (payment.producerWhatsapp) {
+    return payment.producerWhatsapp;
+  }
+  return undefined;
 }
 
 function buildWhatsappHref(payment: Payment) {

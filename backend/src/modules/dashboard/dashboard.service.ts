@@ -175,10 +175,14 @@ export class DashboardService {
       const salePayments = payments.filter(p => p.salesOrderId?.toString() === sale._id.toString());
       const saleDocs = fiscalDocs.filter(f => f.salesOrderId?.toString() === sale._id.toString());
       
-      const recebido = salePayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+      const recebido = salePayments.filter(p => p.type === 'receivable').reduce((sum, p) => sum + (p.paidAmount || 0), 0);
       const aReceber = sale.totalReceivableAmount || 0;
-      const saldo = aReceber - recebido;
+      const saldo = Math.max(0, this.roundMoney(aReceber - recebido));
       
+      const pagoProdutor = salePayments.filter(p => p.type === 'payable').reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+      const aPagarProdutor = sale.producerNetAmount || 0;
+      const saldoProdutor = Math.max(0, this.roundMoney(aPagarProdutor - pagoProdutor));
+
       const nfeValue = saleDocs.reduce((sum, f) => sum + (f.amount || 0), 0);
       const nfeNumbers = saleDocs.map(f => f.number).filter(Boolean).join(', ');
 
@@ -188,9 +192,12 @@ export class DashboardService {
         producerName: sale.saleType === 'venda_estoque' ? 'AgroVendas' : (sale.producerId?.name || 'Desconhecido'),
         recebido: this.roundMoney(recebido),
         aReceber: this.roundMoney(aReceber),
+        saldo: this.roundMoney(saldo),
+        pagoProdutor: this.roundMoney(pagoProdutor),
+        aPagarProdutor: this.roundMoney(aPagarProdutor),
+        saldoProdutor: this.roundMoney(saldoProdutor),
         nfeValue: this.roundMoney(nfeValue),
         nfeNumbers: nfeNumbers || '-',
-        saldo: this.roundMoney(saldo)
       };
     });
 

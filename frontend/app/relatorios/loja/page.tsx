@@ -49,9 +49,15 @@ function LojaReportContent() {
     });
   }, [start, end, viewMode, customerId, producerId]);
 
-  const visibleData = (viewMode === 'produtor' && producerId !== 'agrovendas') 
-    ? data.filter(s => s.saleType === 'compra_venda') 
-    : data;
+  const visibleData = useMemo(() => {
+    if (viewMode === 'produtor') {
+      if (producerId === 'agrovendas') {
+        return data.filter(s => s.saleType === 'venda_estoque');
+      }
+      return data.filter(s => s.saleType !== 'venda_estoque');
+    }
+    return data;
+  }, [data, viewMode, producerId]);
 
   const uniqueProducts = useMemo(() => {
     const productsSet = new Set<string>();
@@ -71,56 +77,39 @@ function LojaReportContent() {
 
   const getGrossAmount = (s: any) => {
     if (s.saleType === 'intermediacao') {
+      if (viewMode === 'produtor') return 0;
       return s.brokerageAmount || 0; // Para corretagem, o faturamento da corretora é apenas a comissão!
     }
     if (viewMode === 'produtor') {
-      if (s.saleType === 'compra_venda') {
-        return s.totalCostAmount ?? 0;
+      if (s.saleType === 'compra_venda' || s.saleType === 'particular') {
+        return s.totalCostAmount ?? s.totalParticularAmount ?? 0;
       }
+      return 0;
     }
     return s.totalParticularAmount ?? 0;
   };
 
   const getNetAmount = (s: any) => {
     if (s.saleType === 'intermediacao') {
+      if (viewMode === 'produtor') return 0;
       return s.brokerageAmount || 0; // Receber apenas a comissão
     }
     if (viewMode === 'produtor') {
-      if (s.saleType === 'compra_venda') {
-        return s.producerNetAmount ?? 0;
-      }
-      if (s.saleType === 'venda_estoque') {
-        return s.totalReceivableAmount ?? 0;
-      }
-      return s.producerNetAmount ?? s.totalReceivableAmount ?? 0;
+      return s.producerNetAmount ?? 0;
     }
     return s.totalReceivableAmount ?? 0;
   };
 
   const getRecebidoAmount = (s: any) => {
     if (viewMode === 'produtor') {
-      if (s.saleType === 'compra_venda') {
-        const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.recebido || 0) / s.totalReceivableAmount) : 0;
-        return (s.producerNetAmount ?? 0) * ratio;
-      }
-      if (s.saleType === 'venda_estoque') {
-        return s.recebido ?? 0;
-      }
-      return s.producerNetAmount ?? s.recebido ?? 0;
+      return s.pagoProdutor ?? 0;
     }
     return s.recebido ?? 0;
   };
 
   const getSaldoAmount = (s: any) => {
     if (viewMode === 'produtor') {
-      if (s.saleType === 'compra_venda') {
-        const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.saldo || 0) / s.totalReceivableAmount) : 1;
-        return (s.producerNetAmount ?? 0) * ratio;
-      }
-      if (s.saleType === 'venda_estoque') {
-        return s.saldo ?? 0;
-      }
-      return s.producerNetAmount ?? s.saldo ?? 0;
+      return s.saldoProdutor ?? 0;
     }
     return s.saldo ?? 0;
   };

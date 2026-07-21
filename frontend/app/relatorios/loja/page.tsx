@@ -245,13 +245,7 @@ function LojaReportContent() {
         </p>
       </div>
 
-      <div className="loja-params">
-        <span>Venda: <strong>Geral</strong></span>
-        <span>Período: <strong>{start ? formatDate(start) : 'Sempre'} até {end ? formatDate(end) : 'Sempre'}</strong></span>
-        <span>Unidade: <strong>Saco</strong></span>
-        <span>Conversão: <strong>1 saco = 25 kg</strong></span>
-        <span>FUNRURAL: <strong>1,63%</strong></span>
-      </div>
+
 
       <div className="executive-summary" style={{ gridTemplateColumns: viewMode === 'geral' ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)' }}>
         <div className="summary-card bg-green">

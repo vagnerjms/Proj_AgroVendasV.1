@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { apiGet, apiPatch } from '../../lib/api';
+import { apiGet, apiPatch, refreshAuthSession } from '../../lib/api';
 
 type Entity = { _id?: string; name?: string };
 
@@ -38,6 +38,7 @@ export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDateStr, setSelectedDateStr] = useState(() => new Date().toISOString().slice(0, 10));
   const [filterType, setFilterType] = useState<FilterCategory>('all');
+  const [notificationPermission, setNotificationPermission] = useState<string>('default');
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [alerts, setAlerts] = useState<PaymentAlerts>({
@@ -60,9 +61,58 @@ export default function AgendaPage() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  // Verificar suporte e estado de permissão de notificação do celular
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  // Solicitar permissão de notificação no celular
+  const requestNotificationPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast.error('Seu navegador ou celular não possui suporte a Notificações Push.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
+        toast.success('🔔 Notificações da Agenda ativadas no seu celular!');
+        triggerMobileNotification(
+          'AgroVenda Broker 📅',
+          '🔔 Notificações ativadas com sucesso! Você receberá alertas dos vencimentos da agenda no seu celular.'
+        );
+      } else if (permission === 'denied') {
+        toast.error('Permissão de Notificação negada nas configurações do celular.');
+      }
+    } catch (err) {
+      console.error('Erro ao solicitar permissão de notificação:', err);
+    }
+  };
+
+  // Disparar notificação nativa na tela do celular / SO
+  const triggerMobileNotification = (title: string, body: string) => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body,
+          icon: '/favicon.ico',
+          tag: 'agrovenda-alert',
+        });
+      } catch (err) {
+        console.error('Erro ao disparar notificação no celular:', err);
+      }
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
+      // Manter sessão ativa renovando o cookie a cada carregamento
+      refreshAuthSession();
+
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
 
@@ -89,12 +139,26 @@ export default function AgendaPage() {
       setPayments(paymentsData);
       setAlerts(alertsData);
 
-      // Disparar Notificação na Tela se houver contas vencidas
+      // Disparar Notificação na Tela e no Celular se houver contas vencidas ou a vencer hoje
       const overdueTotalCount = (alertsData.receivablesOverdue?.length || 0) + (alertsData.payablesOverdue?.length || 0);
+      const dueTodayTotalCount = (alertsData.receivablesDueToday?.length || 0) + (alertsData.payablesDueToday?.length || 0);
+
       if (overdueTotalCount > 0) {
         toast.warning(`⚠️ Atenção: Você possui ${overdueTotalCount} título(s) em atraso!`, {
           toastId: 'overdue-alert-toast',
         });
+        triggerMobileNotification(
+          '🚨 AgroVendas: Títulos em Atraso!',
+          `Atenção: Você possui ${overdueTotalCount} conta(s) vencida(s) na agenda.`
+        );
+      } else if (dueTodayTotalCount > 0) {
+        toast.info(`🟡 Você possui ${dueTodayTotalCount} conta(s) com vencimento hoje!`, {
+          toastId: 'today-alert-toast',
+        });
+        triggerMobileNotification(
+          '🟡 AgroVendas: Vencimentos de Hoje',
+          `Você possui ${dueTodayTotalCount} compromisso(s) financeiro(s) vencendo hoje.`
+        );
       }
     } catch (err) {
       console.error('Erro ao carregar dados da agenda:', err);
@@ -105,6 +169,14 @@ export default function AgendaPage() {
 
   useEffect(() => {
     void loadData();
+
+    // Heartbeat de Manutenção de Sessão Permanente & Atualização dos Alertas a cada 3 minutos
+    const interval = setInterval(() => {
+      refreshAuthSession();
+      void loadData();
+    }, 180000);
+
+    return () => clearInterval(interval);
   }, [year, month]);
 
   // Navegação de mês
@@ -268,8 +340,24 @@ export default function AgendaPage() {
         <div>
           <p><Link href="/">Inicio</Link> / <Link href="/alertas">Alertas</Link></p>
           <h1>📅 Agenda & Alertas de Vencimentos</h1>
+          <span style={{ fontSize: '12px', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '12px', fontWeight: 600, display: 'inline-block', marginTop: '4px' }}>
+            🔒 Modo Sessão Permanente (Sua sessão não expira nesta tela)
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            className={`btn-calendar-nav ${notificationPermission === 'granted' ? 'active' : ''}`}
+            onClick={requestNotificationPermission}
+            style={{
+              background: notificationPermission === 'granted' ? '#f0fdf4' : '#ffffff',
+              borderColor: notificationPermission === 'granted' ? '#16a34a' : '#cbd5e1',
+              color: notificationPermission === 'granted' ? '#166534' : '#334155',
+              fontWeight: 600,
+            }}
+          >
+            {notificationPermission === 'granted' ? '✅ Notificações no Celular Ativas' : '🔔 Ativar Notificações no Celular'}
+          </button>
           <button className="btn-calendar-nav" onClick={goToday}>Hoje</button>
           <Link className="link-action" href="/financeiro/cash-flow">Fluxo de Caixa</Link>
         </div>

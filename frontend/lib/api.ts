@@ -113,7 +113,15 @@ export function setAuthSession(accessToken: string, user?: AuthUser) {
   if (user) {
     window.localStorage.setItem('user', JSON.stringify(user));
   }
-  document.cookie = `accessToken=${accessToken}; path=/; max-age=28800; SameSite=Lax`;
+  document.cookie = `accessToken=${accessToken}; path=/; max-age=2592000; SameSite=Lax`;
+}
+
+export function refreshAuthSession() {
+  if (typeof window === 'undefined') return;
+  const token = getToken();
+  if (token) {
+    document.cookie = `accessToken=${token}; path=/; max-age=2592000; SameSite=Lax`;
+  }
 }
 
 export function logout() {

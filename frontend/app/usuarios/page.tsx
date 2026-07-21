@@ -141,7 +141,7 @@ export default function UsuariosPage() {
                 <label className="permission-checkbox" style={{ fontWeight: 600, color: '#16a34a' }}>
                   <input
                     type="checkbox"
-                    checked={formData.twoFactorEnabled ?? true}
+                    checked={formData.twoFactorEnabled ?? false}
                     onChange={(e) => setFormData({ ...formData, twoFactorEnabled: e.target.checked })}
                   />
                   🔒 Ativar Autenticação de Dois Fatores (2FA em 2 Etapas)

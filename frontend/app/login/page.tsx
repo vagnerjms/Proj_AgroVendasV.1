@@ -100,7 +100,7 @@ export default function LoginPage() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 style={{ width: '16px', height: '16px', accentColor: '#16a34a', margin: 0 }}
               />
-              🔒 Manter minha sessão conectada por 1 ano (365 dias)
+              🔒 Manter minha sessão
             </label>
           </>
         ) : (

@@ -264,10 +264,10 @@ export class SalesOrdersService {
   }
 
   private async resolveFunruralRates(dto: { saleType?: string; producerId?: string; customerId?: string }) {
-    const funruralRate = 0.015;
-    const funruralSocialSecurityRate = 0.012;
+    const funruralRate = 0.0163;
+    const funruralSocialSecurityRate = 0.013;
     const funruralRatRate = 0.001;
-    const funruralSenarRate = 0.002;
+    const funruralSenarRate = 0.0023;
     let customerDocumentType = 'cnpj';
 
     if (dto.customerId) {

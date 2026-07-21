@@ -32,10 +32,10 @@ export class SalesOrderCalculationService {
     const totalParticularAmount = this.roundMoney(items.reduce((sum, item) => sum + item.lineTotal, 0));
     const totalCostAmount = this.roundMoney(items.reduce((sum, item) => sum + item.lineCostTotal, 0));
 
-    const funruralRate = input.funruralRate ?? 0.015;
-    const funruralSocialSecurityRate = input.funruralSocialSecurityRate ?? 0.012;
+    const funruralRate = input.funruralRate ?? 0.0163;
+    const funruralSocialSecurityRate = input.funruralSocialSecurityRate ?? 0.013;
     const funruralRatRate = input.funruralRatRate ?? 0.001;
-    const funruralSenarRate = input.funruralSenarRate ?? 0.002;
+    const funruralSenarRate = input.funruralSenarRate ?? 0.0023;
 
     // Tax is always calculated on faturamento (sale price) since the client PJ retains it on our invoice
     const baseAmountValue = totalParticularAmount;

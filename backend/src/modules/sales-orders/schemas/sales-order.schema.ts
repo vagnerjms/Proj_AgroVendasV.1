@@ -114,16 +114,16 @@ export class SalesOrder extends AuditableSchema {
   @Prop({ type: Number, default: 0, min: 0 })
   totalParticularAmount!: number;
 
-  @Prop({ type: Number, default: 0.015, min: 0 })
+  @Prop({ type: Number, default: 0.0163, min: 0 })
   funruralRate!: number;
 
-  @Prop({ type: Number, default: 0.012, min: 0 })
+  @Prop({ type: Number, default: 0.013, min: 0 })
   funruralSocialSecurityRate!: number;
 
   @Prop({ type: Number, default: 0.001, min: 0 })
   funruralRatRate!: number;
 
-  @Prop({ type: Number, default: 0.002, min: 0 })
+  @Prop({ type: Number, default: 0.0023, min: 0 })
   funruralSenarRate!: number;
 
   @Prop({ type: Number, default: 0, min: 0 })

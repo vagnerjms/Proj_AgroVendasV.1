@@ -32,10 +32,10 @@ export class PurchaseOrdersService {
     const totalKg = this.roundQuantity(items.reduce((acc, item) => acc + item.quantityKg, 0));
     const totalAmount = this.roundMoney(items.reduce((acc, item) => acc + item.lineTotal, 0));
 
-    const funruralRate = createDto.funruralRate ?? 0.015;
-    const funruralSocialSecurityRate = createDto.funruralSocialSecurityRate ?? 0.012;
+    const funruralRate = createDto.funruralRate ?? 0.0163;
+    const funruralSocialSecurityRate = createDto.funruralSocialSecurityRate ?? 0.013;
     const funruralRatRate = createDto.funruralRatRate ?? 0.001;
-    const funruralSenarRate = createDto.funruralSenarRate ?? 0.002;
+    const funruralSenarRate = createDto.funruralSenarRate ?? 0.0023;
 
     const funruralSocialSecurityAmount = this.roundMoney(totalAmount * funruralSocialSecurityRate);
     const funruralRatAmount = this.roundMoney(totalAmount * funruralRatRate);
@@ -128,10 +128,10 @@ export class PurchaseOrdersService {
 
     const taxBaseAmount = nfeTotalAmount > 0 ? nfeTotalAmount : (order.totalAmount || 0);
 
-    const funruralRate = order.funruralRate ?? 0.015;
-    const funruralSocialSecurityRate = order.funruralSocialSecurityRate ?? 0.012;
+    const funruralRate = order.funruralRate ?? 0.0163;
+    const funruralSocialSecurityRate = order.funruralSocialSecurityRate ?? 0.013;
     const funruralRatRate = order.funruralRatRate ?? 0.001;
-    const funruralSenarRate = order.funruralSenarRate ?? 0.002;
+    const funruralSenarRate = order.funruralSenarRate ?? 0.0023;
 
     const funruralSocialSecurityAmount = this.roundMoney(taxBaseAmount * funruralSocialSecurityRate);
     const funruralRatAmount = this.roundMoney(taxBaseAmount * funruralRatRate);

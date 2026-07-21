@@ -80,14 +80,25 @@ function LojaReportContent() {
   };
 
   const getNetAmount = (s: any) => {
+    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
+      return s.totalParticularAmount ?? 0;
+    }
     return s.totalReceivableAmount ?? 0;
   };
 
   const getRecebidoAmount = (s: any) => {
+    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
+      const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.recebido || 0) / s.totalReceivableAmount) : 0;
+      return (s.totalParticularAmount || 0) * ratio;
+    }
     return s.recebido ?? 0;
   };
 
   const getSaldoAmount = (s: any) => {
+    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
+      const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.saldo || 0) / s.totalReceivableAmount) : 0;
+      return (s.totalParticularAmount || 0) * ratio;
+    }
     return s.saldo ?? 0;
   };
 
@@ -215,7 +226,7 @@ function LojaReportContent() {
 
 
 
-      <div className="executive-summary" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+      <div className="executive-summary" style={{ gridTemplateColumns: viewMode === 'cliente' ? 'repeat(5, 1fr)' : 'repeat(6, 1fr)' }}>
         <div className="summary-card bg-green">
           <strong>{totalVendas}</strong>
           <span>Vendas</span>
@@ -236,14 +247,18 @@ function LojaReportContent() {
           <strong>{money(totalReceber)}</strong>
           <span>Total a Receber</span>
         </div>
-        <div className="summary-card bg-pink">
-          <strong>{money(totalPagar)}</strong>
-          <span>Total a Pagar</span>
-        </div>
-        <div className="summary-card bg-pink">
-          <strong>{money(totalFunrural)}</strong>
-          <span>FUNRURAL</span>
-        </div>
+        {viewMode !== 'cliente' && (
+          <div className="summary-card bg-pink">
+            <strong>{money(totalPagar)}</strong>
+            <span>Total a Pagar</span>
+          </div>
+        )}
+        {viewMode !== 'cliente' && (
+          <div className="summary-card bg-pink">
+            <strong>{money(totalFunrural)}</strong>
+            <span>FUNRURAL</span>
+          </div>
+        )}
         <div className="summary-card bg-blue">
           <strong>{money(totalNFe)}</strong>
           <span>Valor NFe's</span>
@@ -293,9 +308,9 @@ function LojaReportContent() {
               <th>{viewMode === 'produtor' ? 'Valor venda' : 'Bruto Venda'}</th>
               <th>Líq. a Receber</th>
               <th>Venc. Receber</th>
-              <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>
-              <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>
-              <th>FUNRURAL</th>
+              {viewMode !== 'cliente' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
+              {viewMode !== 'cliente' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
+              {viewMode !== 'cliente' && <th>FUNRURAL</th>}
               <th>Valor NFe's</th>
 
               {viewMode === 'geral' && <th style={{background: '#b39ddb', color: '#333'}}>Lucro Líquido</th>}
@@ -322,9 +337,9 @@ function LojaReportContent() {
                   <td>{money(getGrossAmount(s))}</td>
                   <td>{money(getNetAmount(s))}</td>
                   <td>{formatDate(s.dueDate)}</td>
-                  <td>{money(s.producerNetAmount || 0)}</td>
-                  <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>
-                  <td>{money(getFunruralAmount(s))}</td>
+                  {viewMode !== 'cliente' && <td>{money(s.producerNetAmount || 0)}</td>}
+                  {viewMode !== 'cliente' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
+                  {viewMode !== 'cliente' && <td>{money(getFunruralAmount(s))}</td>}
                   <td>{money(s.nfeValue)}</td>
 
                   {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
@@ -351,9 +366,9 @@ function LojaReportContent() {
               <td>{money(totalParticular)}</td>
               <td>{money(totalReceber)}</td>
               <td></td>
-              <td>{money(totalPagar)}</td>
-              <td></td>
-              <td>{money(totalFunrural)}</td>
+              {viewMode !== 'cliente' && <td>{money(totalPagar)}</td>}
+              {viewMode !== 'cliente' && <td></td>}
+              {viewMode !== 'cliente' && <td>{money(totalFunrural)}</td>}
               <td>{money(totalNFe)}</td>
 
               {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: totalLucro < 0 ? 'red' : 'green'}}>{money(totalLucro)}</td>}

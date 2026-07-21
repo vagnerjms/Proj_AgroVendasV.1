@@ -35,7 +35,8 @@ export class AuthService {
       role: user.role,
     };
 
-    const accessToken = await this.jwtService.signAsync(payload);
+    const expiresIn = dto.rememberMe ? '365d' : '30d';
+    const accessToken = await this.jwtService.signAsync(payload, { expiresIn });
 
     return {
       accessToken,

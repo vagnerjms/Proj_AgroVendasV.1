@@ -100,33 +100,42 @@ export async function apiDelete<T>(path: string): Promise<T> {
   return response.json();
 }
 
-export async function login(email: string, password: string, twoFactorCode?: string) {
-  const response = await apiPost<LoginResponse>('/auth/login', { email, password, twoFactorCode });
+export async function login(email: string, password: string, twoFactorCode?: string, rememberMe: boolean = true) {
+  const response = await apiPost<LoginResponse>('/auth/login', { email, password, twoFactorCode, rememberMe });
   if (response.accessToken) {
-    setAuthSession(response.accessToken, response.user);
+    setAuthSession(response.accessToken, response.user, rememberMe);
   }
   return response;
 }
 
-export function setAuthSession(accessToken: string, user?: AuthUser) {
+export function setAuthSession(accessToken: string, user?: AuthUser, rememberMe: boolean = true) {
   window.localStorage.setItem('accessToken', accessToken);
   if (user) {
     window.localStorage.setItem('user', JSON.stringify(user));
   }
-  document.cookie = `accessToken=${accessToken}; path=/; max-age=2592000; SameSite=Lax`;
+  if (rememberMe) {
+    window.localStorage.setItem('rememberMe', 'true');
+  } else {
+    window.localStorage.removeItem('rememberMe');
+  }
+  const maxAge = rememberMe ? 31536000 : 2592000;
+  document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
 }
 
 export function refreshAuthSession() {
   if (typeof window === 'undefined') return;
   const token = getToken();
   if (token) {
-    document.cookie = `accessToken=${token}; path=/; max-age=2592000; SameSite=Lax`;
+    const isOneYear = window.localStorage.getItem('rememberMe') === 'true';
+    const maxAge = isOneYear ? 31536000 : 2592000;
+    document.cookie = `accessToken=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
   }
 }
 
 export function logout() {
   window.localStorage.removeItem('accessToken');
   window.localStorage.removeItem('user');
+  window.localStorage.removeItem('rememberMe');
   document.cookie = 'accessToken=; path=/; max-age=0; SameSite=Lax';
 }
 

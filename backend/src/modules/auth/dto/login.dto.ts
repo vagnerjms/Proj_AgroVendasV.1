@@ -11,4 +11,7 @@ export class LoginDto {
   @IsOptional()
   @IsString()
   twoFactorCode?: string;
+
+  @IsOptional()
+  rememberMe?: boolean;
 }

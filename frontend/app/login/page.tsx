@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [step2FA, setStep2FA] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await login(email, password, step2FA ? twoFactorCode : undefined);
+      const res = await login(email, password, step2FA ? twoFactorCode : undefined, rememberMe);
       if (res.require2FA) {
         setStep2FA(true);
         setError('');
@@ -90,6 +91,16 @@ export default function LoginPage() {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px', fontSize: '13px', color: '#334155' }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: '#16a34a', margin: 0 }}
+              />
+              🔒 Manter minha sessão conectada por 1 ano (365 dias)
             </label>
           </>
         ) : (

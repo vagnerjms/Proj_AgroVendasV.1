@@ -15,6 +15,7 @@ import { LotsModule } from './modules/lots/lots.module';
 import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module';
 import { SalesOrdersModule } from './modules/sales-orders/sales-orders.module';
 import { UsersModule } from './modules/users/users.module';
+import { BackupModule } from './modules/backup/backup.module';
 
 @Module({
   imports: [
@@ -53,7 +54,7 @@ import { UsersModule } from './modules/users/users.module';
     PaymentsModule,
     FiscalDocumentsModule,
     DashboardModule,
-
+    BackupModule,
   ],
   controllers: [HealthController],
 })

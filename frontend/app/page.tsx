@@ -156,6 +156,7 @@ export default function Home() {
                 <Link href="/relatorios">📊 Relatórios</Link>
                 <Link href="/alertas">⚠️ Alertas</Link>
                 {isAdmin && <Link href="/usuarios">👤 Usuários</Link>}
+                {isAdmin && <Link href="/backup">💾 Backup & Restauração</Link>}
               </div>
             </div>
           )}

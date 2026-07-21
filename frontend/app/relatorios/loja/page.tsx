@@ -54,6 +54,9 @@ function LojaReportContent() {
   }
 
   const getGrossAmount = (s: any) => {
+    if (s.saleType === 'intermediacao') {
+      return s.brokerageAmount || 0; // Para corretagem, o faturamento da corretora é apenas a comissão!
+    }
     if (viewMode === 'produtor') {
       if (s.saleType === 'compra_venda') {
         return s.totalCostAmount ?? 0;
@@ -63,6 +66,9 @@ function LojaReportContent() {
   };
 
   const getNetAmount = (s: any) => {
+    if (s.saleType === 'intermediacao') {
+      return s.brokerageAmount || 0; // Receber apenas a comissão
+    }
     if (viewMode === 'produtor') {
       if (s.saleType === 'compra_venda') {
         return s.producerNetAmount ?? 0;
@@ -104,6 +110,9 @@ function LojaReportContent() {
   };
 
   const getFunruralAmount = (s: any) => {
+    if (s.saleType === 'intermediacao') {
+      return 0; // Corretora não retém Funrural de comissão
+    }
     if (viewMode === 'produtor') {
       if (s.saleType === 'compra_venda') {
         return Math.max(0, (s.totalCostAmount || 0) - (s.producerNetAmount || 0));
@@ -123,14 +132,21 @@ function LojaReportContent() {
   const totalKg = visibleData.reduce((acc, s) => acc + (s.totalKg || 0), 0);
   const totalParticular = visibleData.reduce((acc, s) => acc + getGrossAmount(s), 0);
   const totalReceber = visibleData.reduce((acc, s) => acc + getNetAmount(s), 0);
-  const totalPagar = visibleData.reduce((acc, s) => acc + (s.producerNetAmount || 0), 0);
+  const totalPagar = visibleData.reduce((acc, s) => {
+    if (s.saleType === 'intermediacao' || s.saleType === 'venda_estoque') return acc;
+    return acc + (s.producerNetAmount || 0);
+  }, 0);
   const totalFunrural = visibleData.reduce((acc, s) => acc + getFunruralAmount(s), 0);
   const totalNFe = visibleData.reduce((acc, s) => acc + (s.nfeValue || 0), 0);
   const totalRecebido = visibleData.reduce((acc, s) => acc + getRecebidoAmount(s), 0);
   const totalSaldo = visibleData.reduce((acc, s) => acc + getSaldoAmount(s), 0);
+  
   const getLucro = (s: any) => {
     if (s.saleType === 'particular') {
-      return s.totalParticularAmount || 0;
+      return 0; // Repasse direto não gera margem nem lucro
+    }
+    if (s.saleType === 'intermediacao') {
+      return s.brokerageAmount || 0; // Lucro é apenas a comissão
     }
     return (s.marginAmount || 0) + (s.brokerageAmount || 0);
   };

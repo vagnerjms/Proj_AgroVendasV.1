@@ -69,7 +69,7 @@ export class SalesOrderCalculationService {
       } else {
         totalReceivableAmount = totalParticularAmount;
       }
-      producerNetAmount = totalCostAmount; // Paga 100% ao produtor (sem retenção CPF-para-CPF)
+      producerNetAmount = totalCostAmount;
       marginAmount = this.roundMoney(totalReceivableAmount - totalCostAmount);
     } else if (saleType === 'venda_estoque') {
       if (isClientPJ) {
@@ -79,6 +79,20 @@ export class SalesOrderCalculationService {
       }
       producerNetAmount = 0;
       marginAmount = this.roundMoney(totalReceivableAmount - totalCostAmount);
+    } else if (saleType === 'intermediacao') {
+      // Corretagem / Intermediação: O faturamento real da corretora é apenas a comissão!
+      totalReceivableAmount = brokerageAmount;
+      producerNetAmount = 0; // A transação de compra/venda é direta entre produtor e comprador
+      marginAmount = 0; // Sem margem de compra e venda
+    } else if (saleType === 'particular') {
+      // Repasse particular direto
+      if (isClientPJ) {
+        totalReceivableAmount = this.roundMoney(totalParticularAmount - funruralRetentionAmount);
+      } else {
+        totalReceivableAmount = totalParticularAmount;
+      }
+      producerNetAmount = totalReceivableAmount; // O que recebe repassa integralmente
+      marginAmount = 0;
     } else {
       if (isClientPJ) {
         totalReceivableAmount = this.roundMoney(totalParticularAmount - funruralRetentionAmount);

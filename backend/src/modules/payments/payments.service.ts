@@ -70,10 +70,10 @@ export class PaymentsService {
   async ensureReceivableForSalesOrder(order: SalesOrderForReceivable) {
     const salesOrderId = new Types.ObjectId(this.getId(order._id));
     
-    // Clear previous receivables for this order in case of update
-    // For simplicity, we just create new ones if they don't exist, but here we should handle multiple
-    
     if (order.saleType === 'intermediacao') {
+      // Limpar contas a receber sem sufixo se existirem
+      await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: order.orderNumber });
+
       const amount = this.roundMoney(order.brokerageAmount ?? 0);
       const payer = order.brokeragePayer || 'producer';
       
@@ -116,18 +116,27 @@ export class PaymentsService {
       const producer = this.extractEntity(order.producerId);
       
       if (payer === 'producer') {
+        // Limpar possíveis contas com sufixos de cliente/ambos
+        await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-C', order.orderNumber + '-P'] } });
         return createReceivable({ ...producer, isCustomer: false }, 1, '');
       } else if (payer === 'customer') {
+        // Limpar possíveis contas com sufixos de produtor/ambos
+        await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-P', order.orderNumber + '-C'] } });
         return createReceivable({ ...customer, isCustomer: true }, 1, '');
       } else {
+        // Pagar ambos: limpar conta principal sem sufixo se ela veio com comissão
+        await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: order.orderNumber });
         await createReceivable({ ...producer, isCustomer: false }, 0.5, '-P');
         return createReceivable({ ...customer, isCustomer: true }, 0.5, '-C');
       }
     }
 
+    // Limpar contas de corretagem com sufixos se existirem
+    await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-P', order.orderNumber + '-C'] } });
+
     const amount = this.roundMoney(order.totalReceivableAmount ?? 0);
 
-    const existing = await this.paymentModel.findOne({ salesOrderId, type: 'receivable', isDeleted: false }).lean();
+    const existing = await this.paymentModel.findOne({ salesOrderId, type: 'receivable', isDeleted: false, orderNumber: order.orderNumber }).lean();
     if (existing) {
       if (existing.status !== 'cancelled' && existing.amount !== amount) {
         const balanceAmount = this.roundMoney(amount - existing.paidAmount);
@@ -161,11 +170,14 @@ export class PaymentsService {
   }
 
   async ensurePayableForSalesOrder(order: SalesOrderForReceivable) {
-    if (order.saleType === 'intermediacao') {
+    const salesOrderId = new Types.ObjectId(this.getId(order._id));
+
+    if (order.saleType === 'intermediacao' || order.saleType === 'venda_estoque') {
+      // Limpar qualquer conta a pagar de compra criada anteriormente para esta venda
+      await this.paymentModel.deleteMany({ salesOrderId, type: 'payable' });
       return null;
     }
 
-    const salesOrderId = new Types.ObjectId(this.getId(order._id));
     const amount = this.roundMoney(order.producerNetAmount ?? order.totalReceivableAmount ?? 0);
 
     const existing = await this.paymentModel.findOne({ salesOrderId, type: 'payable', isDeleted: false }).lean();
@@ -180,7 +192,7 @@ export class PaymentsService {
       }
       return existing;
     }
-    if (amount <= 0 || order.saleType === 'venda_estoque') {
+    if (amount <= 0) {
       return null;
     }
     const customer = this.extractEntity(order.customerId);

@@ -166,26 +166,43 @@ function LojaReportContent() {
     return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   }
 
-  function parseItemsClassification(items: any[], saleType?: string) {
-    const cls = { esp: 0, prim: 0, div: 0, bol: 0, flo: 0, 
-                  vEsp: 0, vPrim: 0, vDiv: 0, vBol: 0, vFlo: 0 };
-    (items || []).forEach((item: any) => {
-      const q = item.quantityBags || 0;
-      const isResale = saleType === 'compra_venda';
-      const p = (viewMode === 'produtor' && isResale && item.costPerBag) ? item.costPerBag : (item.pricePerBag || 0);
-      const n = (item.productId?.name || '').toLowerCase();
-      
-      if (n.includes('especial')) { cls.esp += q; cls.vEsp = p; }
-      else if (n.includes('primeira')) { cls.prim += q; cls.vPrim = p; }
-      else if (n.includes('diversa')) { cls.div += q; cls.vDiv = p; }
-      else if (n.includes('bolinha')) { cls.bol += q; cls.vBol = p; }
-      else if (n.includes('flor')) { cls.flo += q; cls.vFlo = p; }
-      else { cls.esp += q; cls.vEsp = p; } // default fallback
+  const uniqueProducts = useMemo(() => {
+    const productsSet = new Set<string>();
+    visibleData.forEach((s) => {
+      (s.items || []).forEach((item: any) => {
+        if (item.productId?.name) {
+          productsSet.add(item.productId.name);
+        }
+      });
     });
-    return cls;
-  }
+    return Array.from(productsSet).sort();
+  }, [visibleData]);
 
-  const isProdutorOrGeral = viewMode === 'produtor' || viewMode === 'geral';
+  const getProductCellData = (sale: any, productName: string) => {
+    const items = sale.items || [];
+    const matchedItems = items.filter((item: any) => item.productId?.name === productName);
+    if (matchedItems.length === 0) return '-';
+
+    const totalQty = matchedItems.reduce((sum: number, item: any) => sum + (item.quantityBags || 0), 0);
+    const prices = matchedItems.map((item: any) => {
+      const price = (viewMode === 'produtor' && sale.saleType === 'compra_venda' && item.costPerBag) 
+        ? item.costPerBag 
+        : (item.pricePerBag || 0);
+      return money(price);
+    });
+    
+    const uniquePrices = Array.from(new Set(prices)).join(' / ');
+    const unit = matchedItems[0]?.productId?.defaultUnit || 'sc';
+
+    return `${totalQty} ${unit} (${uniquePrices})`;
+  };
+
+  const getProductTotalQty = (productName: string) => {
+    return visibleData.reduce((sum, s) => {
+      const matchedItems = (s.items || []).filter((item: any) => item.productId?.name === productName);
+      return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityBags || 0), 0);
+    }, 0);
+  };
 
   const headerBgColor = viewMode === 'cliente' ? '#2e7d32' : (viewMode === 'produtor' ? '#0d47a1' : '#4a148c');
 
@@ -312,7 +329,7 @@ function LojaReportContent() {
       </h3>
 
       <div style={{ overflowX: 'auto' }}>
-        <table className="loja-table" style={{ minWidth: isProdutorOrGeral ? '1400px' : 'auto' }}>
+        <table className="loja-table" style={{ minWidth: uniqueProducts.length > 0 ? `${1000 + uniqueProducts.length * 150}px` : '1000px' }}>
           <thead className="header-green" style={{background: headerBgColor}}>
             <tr>
               <th>Part.</th>
@@ -320,17 +337,11 @@ function LojaReportContent() {
               {viewMode !== 'cliente' && <th>Produtor</th>}
               {viewMode !== 'produtor' && <th>Destinatário</th>}
               
-              {isProdutorOrGeral && <th style={{background: '#c8e6c9', color: '#333'}}>Especial</th>}
-              {isProdutorOrGeral && <th style={{background: '#c8e6c9', color: '#333'}}>Prim. X</th>}
-              {isProdutorOrGeral && <th style={{background: '#c8e6c9', color: '#333'}}>Diversa</th>}
-              {isProdutorOrGeral && <th style={{background: '#c8e6c9', color: '#333'}}>Bolinha</th>}
-              {isProdutorOrGeral && <th style={{background: '#c8e6c9', color: '#333'}}>Florão</th>}
-              
-              {isProdutorOrGeral && <th style={{background: '#fff9c4', color: '#333'}}>Esp. R$</th>}
-              {isProdutorOrGeral && <th style={{background: '#fff9c4', color: '#333'}}>Prim. X R$</th>}
-              {isProdutorOrGeral && <th style={{background: '#fff9c4', color: '#333'}}>Div. R$</th>}
-              {isProdutorOrGeral && <th style={{background: '#fff9c4', color: '#333'}}>Bol. R$</th>}
-              {isProdutorOrGeral && <th style={{background: '#fff9c4', color: '#333'}}>Flo. R$</th>}
+              {uniqueProducts.map((prodName) => (
+                <th key={prodName} style={{background: '#c8e6c9', color: '#333', whiteSpace: 'nowrap'}}>
+                  {prodName}
+                </th>
+              ))}
 
               {viewMode === 'cliente' && <th>Total Sacos</th>}
               {viewMode === 'cliente' && <th>Kg</th>}
@@ -353,7 +364,6 @@ function LojaReportContent() {
           </thead>
           <tbody>
             {visibleData.map(s => {
-              const cls = parseItemsClassification(s.items, s.saleType);
               return (
                 <tr key={s._id}>
                   <td>{s.orderNumber}</td>
@@ -361,17 +371,11 @@ function LojaReportContent() {
                   {viewMode !== 'cliente' && <td style={{textAlign: 'left'}}>{s.producerName}</td>}
                   {viewMode !== 'produtor' && <td style={{textAlign: 'left'}}>{s.customerName}</td>}
                   
-                  {isProdutorOrGeral && <td>{cls.esp || ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.prim || ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.div || ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.bol || ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.flo || ''}</td>}
-
-                  {isProdutorOrGeral && <td>{cls.vEsp ? money(cls.vEsp) : ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.vPrim ? money(cls.vPrim) : ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.vDiv ? money(cls.vDiv) : ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.vBol ? money(cls.vBol) : ''}</td>}
-                  {isProdutorOrGeral && <td>{cls.vFlo ? money(cls.vFlo) : ''}</td>}
+                  {uniqueProducts.map((prodName) => (
+                    <td key={prodName} style={{whiteSpace: 'nowrap'}}>
+                      {getProductCellData(s, prodName)}
+                    </td>
+                  ))}
                   
                   {viewMode === 'cliente' && <td>{s.totalBags}</td>}
                   {viewMode === 'cliente' && <td>{s.totalKg}</td>}
@@ -398,13 +402,14 @@ function LojaReportContent() {
             <tr className="totals-row">
               <td colSpan={viewMode === 'geral' ? 4 : 3}>TOTAL</td>
               
-              {isProdutorOrGeral && <td>{visibleData.reduce((acc, s) => acc + parseItemsClassification(s.items, s.saleType).esp, 0) || ''}</td>}
-              {isProdutorOrGeral && <td>{visibleData.reduce((acc, s) => acc + parseItemsClassification(s.items, s.saleType).prim, 0) || ''}</td>}
-              {isProdutorOrGeral && <td>{visibleData.reduce((acc, s) => acc + parseItemsClassification(s.items, s.saleType).div, 0) || ''}</td>}
-              {isProdutorOrGeral && <td>{visibleData.reduce((acc, s) => acc + parseItemsClassification(s.items, s.saleType).bol, 0) || ''}</td>}
-              {isProdutorOrGeral && <td>{visibleData.reduce((acc, s) => acc + parseItemsClassification(s.items, s.saleType).flo, 0) || ''}</td>}
-              
-              {isProdutorOrGeral && <td colSpan={5}></td>}
+              {uniqueProducts.map((prodName) => {
+                const qty = getProductTotalQty(prodName);
+                return (
+                  <td key={prodName} style={{fontWeight: 'bold'}}>
+                    {qty > 0 ? `${qty}` : '-'}
+                  </td>
+                );
+              })}
 
               {viewMode === 'cliente' && <td>{totalSacos}</td>}
               {viewMode === 'cliente' && <td>{totalKg}</td>}

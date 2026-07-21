@@ -38,8 +38,8 @@ function LojaReportContent() {
       
       // Sort data by Date as default, or by Customer
       fetched.sort((a: any, b: any) => {
-        const nameA = viewMode === 'cliente' ? a.customerName : a.producerName;
-        const nameB = viewMode === 'cliente' ? b.customerName : b.producerName;
+        const nameA = String(viewMode === 'cliente' ? (a.customerName || '') : (a.producerName || ''));
+        const nameB = String(viewMode === 'cliente' ? (b.customerName || '') : (b.producerName || ''));
         return nameA.localeCompare(nameB);
       });
       setData(fetched);

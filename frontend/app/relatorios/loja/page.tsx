@@ -271,8 +271,8 @@ function LojaReportContent() {
           <span>Valor Bruto Total</span>
         </div>
         <div className="summary-card bg-yellow">
-          <strong>{money(totalReceber)}</strong>
-          <span>Total a Receber</span>
+          <strong>{money(viewMode === 'produtor' ? totalPagar : totalReceber)}</strong>
+          <span>{viewMode === 'produtor' ? 'Total a Pagar' : 'Total a Receber'}</span>
         </div>
         {viewMode === 'geral' && (
           <div className="summary-card bg-pink">
@@ -336,7 +336,7 @@ function LojaReportContent() {
               {viewMode === 'cliente' && <th>Total Sacos</th>}
               {viewMode === 'cliente' && <th>Kg</th>}
               
-              <th>{viewMode === 'produtor' ? 'Bruto Compra' : 'Bruto Venda'}</th>
+              <th>{viewMode === 'produtor' ? 'Valor venda' : 'Bruto Venda'}</th>
               <th>{viewMode === 'produtor' ? 'Líq. a Pagar' : 'Líq. a Receber'}</th>
               {viewMode === 'geral' && <th>Venc. Receber</th>}
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}

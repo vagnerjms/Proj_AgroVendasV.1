@@ -301,19 +301,19 @@ export default function AgendaPage() {
   const totalOverdueAmount = useMemo(() => {
     const rec = alerts.receivablesOverdue.reduce((acc, p) => acc + (p.balanceAmount ?? p.amount ?? 0), 0);
     const pay = alerts.payablesOverdue.reduce((acc, p) => acc + (p.balanceAmount ?? p.amount ?? 0), 0);
-    return { rec, pay, total: rec + pay, count: alerts.receivablesOverdue.length + alerts.payablesOverdue.length };
+    return { rec, pay, net: rec - pay, count: alerts.receivablesOverdue.length + alerts.payablesOverdue.length, recCount: alerts.receivablesOverdue.length, payCount: alerts.payablesOverdue.length };
   }, [alerts]);
 
   const totalDueTodayAmount = useMemo(() => {
     const rec = alerts.receivablesDueToday.reduce((acc, p) => acc + (p.balanceAmount ?? p.amount ?? 0), 0);
     const pay = alerts.payablesDueToday.reduce((acc, p) => acc + (p.balanceAmount ?? p.amount ?? 0), 0);
-    return { rec, pay, total: rec + pay, count: alerts.receivablesDueToday.length + alerts.payablesDueToday.length };
+    return { rec, pay, net: rec - pay, count: alerts.receivablesDueToday.length + alerts.payablesDueToday.length, recCount: alerts.receivablesDueToday.length, payCount: alerts.payablesDueToday.length };
   }, [alerts]);
 
   const totalDueSoonAmount = useMemo(() => {
     const rec = alerts.receivablesDueSoon.reduce((acc, p) => acc + (p.balanceAmount ?? p.amount ?? 0), 0);
     const pay = alerts.payablesDueSoon.reduce((acc, p) => acc + (p.balanceAmount ?? p.amount ?? 0), 0);
-    return { rec, pay, total: rec + pay, count: alerts.receivablesDueSoon.length + alerts.payablesDueSoon.length };
+    return { rec, pay, net: rec - pay, count: alerts.receivablesDueSoon.length + alerts.payablesDueSoon.length, recCount: alerts.receivablesDueSoon.length, payCount: alerts.payablesDueSoon.length };
   }, [alerts]);
 
   // Baixa de Título
@@ -386,10 +386,10 @@ export default function AgendaPage() {
             <span className="agenda-alert-icon">🔴</span>
             <div>
               <div className="agenda-alert-title">
-                {totalOverdueAmount.count} Conta(s) Vencida(s) no valor total de {money(totalOverdueAmount.total)}
+                {totalOverdueAmount.count} Conta(s) Vencida(s) no Total
               </div>
               <div className="agenda-alert-desc">
-                Rec: {money(totalOverdueAmount.rec)} a receber | Pag: {money(totalOverdueAmount.pay)} a pagar ao produtor.
+                📥 <strong>A Receber:</strong> {money(totalOverdueAmount.rec)} ({totalOverdueAmount.recCount}) &nbsp;|&nbsp; 📤 <strong>A Pagar Produtor:</strong> {money(totalOverdueAmount.pay)} ({totalOverdueAmount.payCount})
               </div>
             </div>
           </div>
@@ -410,10 +410,10 @@ export default function AgendaPage() {
             <span className="agenda-alert-icon">🟡</span>
             <div>
               <div className="agenda-alert-title">
-                {totalDueTodayAmount.count} Conta(s) Vencem Hoje no valor de {money(totalDueTodayAmount.total)}
+                {totalDueTodayAmount.count} Conta(s) Vencem Hoje
               </div>
               <div className="agenda-alert-desc">
-                Rec: {money(totalDueTodayAmount.rec)} | Pag: {money(totalDueTodayAmount.pay)}
+                📥 <strong>A Receber:</strong> {money(totalDueTodayAmount.rec)} &nbsp;|&nbsp; 📤 <strong>A Pagar:</strong> {money(totalDueTodayAmount.pay)}
               </div>
             </div>
           </div>
@@ -434,10 +434,13 @@ export default function AgendaPage() {
           className={`agenda-kpi-card overdue ${filterType === 'overdue' ? 'active' : ''}`}
           onClick={() => setFilterType('overdue')}
         >
-          <div className="agenda-kpi-title">🔴 Vencidas ({totalOverdueAmount.count})</div>
-          <div className="agenda-kpi-value">{money(totalOverdueAmount.total)}</div>
-          <div className="agenda-kpi-sub">
-            Rec: {money(totalOverdueAmount.rec)} | Pag: {money(totalOverdueAmount.pay)}
+          <div className="agenda-kpi-title">🔴 Contas Vencidas ({totalOverdueAmount.count})</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+            <span style={{ fontSize: '13px', color: '#15803d', fontWeight: 600 }}>📥 Receber: {money(totalOverdueAmount.rec)}</span>
+            <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>📤 Pagar: {money(totalOverdueAmount.pay)}</span>
+          </div>
+          <div className="agenda-kpi-sub" style={{ marginTop: '4px', borderTop: '1px solid #fee2e2', paddingTop: '4px' }}>
+            Saldo Líquido: <strong>{money(totalOverdueAmount.net)}</strong>
           </div>
         </div>
 
@@ -446,9 +449,12 @@ export default function AgendaPage() {
           onClick={() => { setFilterType('dueToday'); goToday(); }}
         >
           <div className="agenda-kpi-title">🟡 Vencem Hoje ({totalDueTodayAmount.count})</div>
-          <div className="agenda-kpi-value">{money(totalDueTodayAmount.total)}</div>
-          <div className="agenda-kpi-sub">
-            Rec: {money(totalDueTodayAmount.rec)} | Pag: {money(totalDueTodayAmount.pay)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+            <span style={{ fontSize: '13px', color: '#15803d', fontWeight: 600 }}>📥 Receber: {money(totalDueTodayAmount.rec)}</span>
+            <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>📤 Pagar: {money(totalDueTodayAmount.pay)}</span>
+          </div>
+          <div className="agenda-kpi-sub" style={{ marginTop: '4px', borderTop: '1px solid #fef3c7', paddingTop: '4px' }}>
+            Saldo Líquido: <strong>{money(totalDueTodayAmount.net)}</strong>
           </div>
         </div>
 
@@ -457,9 +463,12 @@ export default function AgendaPage() {
           onClick={() => setFilterType('dueSoon')}
         >
           <div className="agenda-kpi-title">🔵 Próximos 3 Dias ({totalDueSoonAmount.count})</div>
-          <div className="agenda-kpi-value">{money(totalDueSoonAmount.total)}</div>
-          <div className="agenda-kpi-sub">
-            Rec: {money(totalDueSoonAmount.rec)} | Pag: {money(totalDueSoonAmount.pay)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+            <span style={{ fontSize: '13px', color: '#15803d', fontWeight: 600 }}>📥 Receber: {money(totalDueSoonAmount.rec)}</span>
+            <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>📤 Pagar: {money(totalDueSoonAmount.pay)}</span>
+          </div>
+          <div className="agenda-kpi-sub" style={{ marginTop: '4px', borderTop: '1px solid #dbeafe', paddingTop: '4px' }}>
+            Saldo Líquido: <strong>{money(totalDueSoonAmount.net)}</strong>
           </div>
         </div>
       </section>

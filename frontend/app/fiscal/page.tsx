@@ -201,7 +201,7 @@ export default function FiscalPage() {
     setSelectedDocument(row.fiscal ?? null);
     
     const amount = row.type === 'sale' 
-      ? (row.order as SalesOrder).totalReceivableAmount 
+      ? (row.order as SalesOrder).totalParticularAmount 
       : (row.order as PurchaseOrder).totalAmount;
       
     const recipient = row.type === 'sale'
@@ -424,7 +424,7 @@ export default function FiscalPage() {
               {type === 'sale' && <span>{(order as SalesOrder).customerId?.name ?? '-'}</span>}
               <span>{order.producerId?.name ?? '-'}</span>
               <span>{formatDate(order.date)}</span>
-              <span>{money(type === 'sale' ? (order as SalesOrder).totalReceivableAmount ?? 0 : (order as PurchaseOrder).totalAmount ?? 0)}</span>
+              <span>{money(type === 'sale' ? (order as SalesOrder).totalParticularAmount ?? 0 : (order as PurchaseOrder).totalAmount ?? 0)}</span>
               <span>{fiscal?.number ?? '-'}</span>
               <span>{fiscal?.amount !== undefined ? money(fiscal.amount) : '-'}</span>
               <span>{fiscalStatusLabel(fiscal?.status ?? order.fiscalStatus)}</span>

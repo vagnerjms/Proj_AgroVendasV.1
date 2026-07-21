@@ -80,14 +80,14 @@ function LojaReportContent() {
   };
 
   const getNetAmount = (s: any) => {
-    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
+    if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
       return s.totalParticularAmount ?? 0;
     }
     return s.totalReceivableAmount ?? 0;
   };
 
   const getRecebidoAmount = (s: any) => {
-    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
+    if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
       const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.recebido || 0) / s.totalReceivableAmount) : 0;
       return (s.totalParticularAmount || 0) * ratio;
     }
@@ -95,7 +95,7 @@ function LojaReportContent() {
   };
 
   const getSaldoAmount = (s: any) => {
-    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
+    if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
       const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.saldo || 0) / s.totalReceivableAmount) : 0;
       return (s.totalParticularAmount || 0) * ratio;
     }

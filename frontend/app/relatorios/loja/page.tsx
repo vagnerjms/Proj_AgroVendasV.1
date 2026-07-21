@@ -49,6 +49,22 @@ function LojaReportContent() {
     });
   }, [start, end, viewMode, customerId, producerId]);
 
+  const visibleData = (viewMode === 'produtor' && producerId !== 'agrovendas') 
+    ? data.filter(s => s.saleType === 'compra_venda') 
+    : data;
+
+  const uniqueProducts = useMemo(() => {
+    const productsSet = new Set<string>();
+    visibleData.forEach((s) => {
+      (s.items || []).forEach((item: any) => {
+        if (item.productId?.name) {
+          productsSet.add(item.productId.name);
+        }
+      });
+    });
+    return Array.from(productsSet).sort();
+  }, [visibleData]);
+
   if (loading) {
     return <div style={{padding: '2rem'}}>Carregando relatório...</div>;
   }
@@ -122,9 +138,6 @@ function LojaReportContent() {
     return s.funruralRetentionAmount || 0;
   };
 
-  const visibleData = (viewMode === 'produtor' && producerId !== 'agrovendas') 
-    ? data.filter(s => s.saleType === 'compra_venda') 
-    : data;
 
   // Common Totals
   const totalVendas = visibleData.length;
@@ -166,17 +179,6 @@ function LojaReportContent() {
     return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   }
 
-  const uniqueProducts = useMemo(() => {
-    const productsSet = new Set<string>();
-    visibleData.forEach((s) => {
-      (s.items || []).forEach((item: any) => {
-        if (item.productId?.name) {
-          productsSet.add(item.productId.name);
-        }
-      });
-    });
-    return Array.from(productsSet).sort();
-  }, [visibleData]);
 
   const getProductCellData = (sale: any, productName: string) => {
     const items = sale.items || [];

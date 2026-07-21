@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { apiGet, apiPost } from '../../lib/api';
+import { toast } from 'react-toastify';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../../lib/api';
 import './page.css';
 
 type User = {
@@ -24,7 +25,15 @@ const MODULES = [
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<User>>({ role: 'broker', permissions: [], twoFactorEnabled: true });
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState<Partial<User>>({
+    name: '',
+    email: '',
+    password: '',
+    role: 'broker',
+    permissions: [],
+    twoFactorEnabled: false,
+  });
 
   const loadUsers = async () => {
     try {
@@ -32,12 +41,39 @@ export default function UsuariosPage() {
       setUsers(data);
     } catch (e) {
       console.error(e);
+      toast.error('Erro ao carregar usuários.');
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    void loadUsers();
   }, []);
+
+  const openCreateModal = () => {
+    setEditingUser(null);
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      role: 'broker',
+      permissions: [],
+      twoFactorEnabled: false,
+    });
+    setIsFormOpen(true);
+  };
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      password: '', // Deixa em branco para manter a senha atual
+      role: user.role || 'broker',
+      permissions: user.permissions || [],
+      twoFactorEnabled: user.twoFactorEnabled ?? false,
+    });
+    setIsFormOpen(true);
+  };
 
   const handlePermissionToggle = (moduleId: string) => {
     const current = formData.permissions || [];
@@ -50,14 +86,62 @@ export default function UsuariosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const payload: Record<string, any> = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+      permissions: formData.permissions || [],
+      twoFactorEnabled: formData.twoFactorEnabled ?? false,
+    };
+
+    if (formData.password && formData.password.trim() !== '') {
+      payload.password = formData.password;
+    }
+
     try {
-      await apiPost('/users', formData);
-      setFormData({ role: 'broker', permissions: [], twoFactorEnabled: true });
+      if (editingUser && editingUser._id) {
+        await apiPatch(`/users/${editingUser._id}`, payload);
+        toast.success(`Usuário ${formData.name} atualizado com sucesso!`);
+      } else {
+        if (!formData.password) {
+          toast.error('Informe a senha para novos usuários.');
+          return;
+        }
+        await apiPost('/users', payload);
+        toast.success(`Usuário ${formData.name} cadastrado com sucesso!`);
+      }
+
       setIsFormOpen(false);
-      loadUsers();
-    } catch (e) {
+      setEditingUser(null);
+      void loadUsers();
+    } catch (e: any) {
       console.error(e);
-      alert('Erro ao salvar usuário');
+      toast.error(e.message || 'Erro ao salvar usuário.');
+    }
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    if (!user._id) return;
+    const confirm = window.confirm(`Tem certeza que deseja desativar o usuário "${user.name}"?`);
+    if (!confirm) return;
+
+    try {
+      await apiDelete(`/users/${user._id}`);
+      toast.success(`Usuário ${user.name} desativado.`);
+      void loadUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao remover usuário.');
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'broker': return 'Corretor / Vendedor';
+      case 'financial': return 'Financeiro';
+      case 'accountant': return 'Contador';
+      default: return role;
     }
   };
 
@@ -70,7 +154,7 @@ export default function UsuariosPage() {
           </Link>
           <h2>Gestão de Usuários</h2>
         </div>
-        <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
+        <button className="btn-primary" onClick={openCreateModal}>
           + Novo Usuário
         </button>
       </header>
@@ -78,7 +162,7 @@ export default function UsuariosPage() {
       {isFormOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Novo Usuário</h3>
+            <h3>{editingUser ? `Editar Usuário: ${editingUser.name}` : 'Novo Usuário'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Nome</label>
@@ -99,11 +183,14 @@ export default function UsuariosPage() {
                 />
               </div>
               <div className="form-group">
-                <label>Senha</label>
+                <label>
+                  Senha {editingUser ? '(deixe em branco para manter a atual)' : ''}
+                </label>
                 <input
                   type="password"
-                  required
+                  required={!editingUser}
                   minLength={8}
+                  placeholder={editingUser ? '••••••••' : 'Digite a senha (min. 8 caracteres)'}
                   value={formData.password || ''}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
@@ -131,7 +218,7 @@ export default function UsuariosPage() {
                         checked={(formData.permissions || []).includes(mod.id)}
                         onChange={() => handlePermissionToggle(mod.id)}
                       />
-                        {mod.label}
+                      {mod.label}
                     </label>
                   ))}
                 </div>
@@ -153,7 +240,7 @@ export default function UsuariosPage() {
                   Cancelar
                 </button>
                 <button type="submit" className="btn-primary">
-                  Salvar
+                  {editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
                 </button>
               </div>
             </form>
@@ -170,14 +257,15 @@ export default function UsuariosPage() {
               <th>Perfil</th>
               <th>Segurança 2FA</th>
               <th>Permissões</th>
+              <th style={{ textAlign: 'right' }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u._id}>
-                <td>{u.name}</td>
+                <td><strong>{u.name}</strong></td>
                 <td>{u.email}</td>
-                <td>{u.role}</td>
+                <td>{getRoleLabel(u.role)}</td>
                 <td>
                   {u.twoFactorEnabled ? (
                     <span className="badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
@@ -195,6 +283,26 @@ export default function UsuariosPage() {
                         {p}
                       </span>
                     ))}
+                  </div>
+                </td>
+                <td style={{ textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => openEditModal(u)}
+                      style={{ padding: '4px 10px', fontSize: '13px' }}
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => handleDeleteUser(u)}
+                      style={{ padding: '4px 10px', fontSize: '13px', color: '#dc2626', borderColor: '#fca5a5' }}
+                    >
+                      🗑️ Desativar
+                    </button>
                   </div>
                 </td>
               </tr>

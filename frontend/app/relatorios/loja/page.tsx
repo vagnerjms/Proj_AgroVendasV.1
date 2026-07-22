@@ -303,7 +303,7 @@ function LojaReportContent() {
             <tr>
               <th>Part.</th>
               <th>Data</th>
-              <th>Produtor</th>
+              {viewMode !== 'cliente' && <th>Produtor</th>}
               <th>Destinatário</th>
               
               {uniqueProducts.map((prodName) => (
@@ -332,7 +332,7 @@ function LojaReportContent() {
                 <tr key={s._id}>
                   <td>{s.orderNumber}</td>
                   <td style={{whiteSpace: 'nowrap'}}>{formatDate(s.date)}</td>
-                  <td style={{textAlign: 'left'}}>{s.producerName}</td>
+                  {viewMode !== 'cliente' && <td style={{textAlign: 'left'}}>{s.producerName}</td>}
                   <td style={{textAlign: 'left'}}>{s.customerName}</td>
                   
                   {uniqueProducts.map((prodName) => (
@@ -359,7 +359,7 @@ function LojaReportContent() {
             
             {/* Linha de Totais Finais */}
             <tr className="totals-row">
-              <td colSpan={4}>TOTAL</td>
+              <td colSpan={viewMode === 'cliente' ? 3 : 4}>TOTAL</td>
               
               {uniqueProducts.map((prodName) => {
                 const qty = getProductTotalQty(prodName);

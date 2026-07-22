@@ -70,71 +70,13 @@ export class PaymentsService {
   async ensureReceivableForSalesOrder(order: SalesOrderForReceivable) {
     const salesOrderId = new Types.ObjectId(this.getId(order._id));
     
-    if (order.saleType === 'intermediacao') {
-      // Limpar contas a receber sem sufixo se existirem
-      await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: order.orderNumber });
+    // Para intermediação, o valor cheio a receber do cliente é o totalParticularAmount
+    const amount = order.saleType === 'intermediacao'
+      ? this.roundMoney(order.totalParticularAmount ?? 0)
+      : this.roundMoney(order.totalReceivableAmount ?? 0);
 
-      const amount = this.roundMoney(order.brokerageAmount ?? 0);
-      const payer = order.brokeragePayer || 'producer';
-      
-      const createReceivable = async (entity: any, fraction: number, suffix: string) => {
-        const val = this.roundMoney(amount * fraction);
-        if (val <= 0) return null;
-        
-        const existing = await this.paymentModel.findOne({ salesOrderId, type: 'receivable', isDeleted: false, orderNumber: order.orderNumber + suffix }).lean();
-        if (existing) {
-          if (existing.status !== 'cancelled' && existing.amount !== val) {
-            const balanceAmount = this.roundMoney(val - existing.paidAmount);
-            await this.paymentModel.findByIdAndUpdate(existing._id, {
-              amount: val,
-              balanceAmount,
-              status: balanceAmount <= 0 ? 'paid' : (existing.paidAmount > 0 ? 'partial' : 'open'),
-            });
-          }
-          return existing;
-        }
-
-        return this.paymentModel.create({
-          type: 'receivable',
-          salesOrderId,
-          orderNumber: order.orderNumber + suffix,
-          customerId: entity.isCustomer ? new Types.ObjectId(entity.id) : undefined,
-          customerName: entity.isCustomer ? entity.name : undefined,
-          customerWhatsapp: entity.isCustomer ? entity.whatsapp : undefined,
-          producerId: !entity.isCustomer ? new Types.ObjectId(entity.id) : undefined,
-          producerName: !entity.isCustomer ? entity.name : undefined,
-          amount: val,
-          paidAmount: 0,
-          balanceAmount: val,
-          dueDate: order.dueDate ? new Date(order.dueDate) : new Date(),
-          status: 'open',
-          history: [],
-        });
-      };
-
-      const customer = this.extractEntity(order.customerId);
-      const producer = this.extractEntity(order.producerId);
-      
-      if (payer === 'producer') {
-        // Limpar possíveis contas com sufixos de cliente/ambos
-        await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-C', order.orderNumber + '-P'] } });
-        return createReceivable({ ...producer, isCustomer: false }, 1, '');
-      } else if (payer === 'customer') {
-        // Limpar possíveis contas com sufixos de produtor/ambos
-        await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-P', order.orderNumber + '-C'] } });
-        return createReceivable({ ...customer, isCustomer: true }, 1, '');
-      } else {
-        // Pagar ambos: limpar conta principal sem sufixo se ela veio com comissão
-        await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: order.orderNumber });
-        await createReceivable({ ...producer, isCustomer: false }, 0.5, '-P');
-        return createReceivable({ ...customer, isCustomer: true }, 0.5, '-C');
-      }
-    }
-
-    // Limpar contas de corretagem com sufixos se existirem
+    // Limpar contas de corretagem antigas com sufixos se existirem
     await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-P', order.orderNumber + '-C'] } });
-
-    const amount = this.roundMoney(order.totalReceivableAmount ?? 0);
 
     const existing = await this.paymentModel.findOne({ salesOrderId, type: 'receivable', isDeleted: false, orderNumber: order.orderNumber }).lean();
     if (existing) {

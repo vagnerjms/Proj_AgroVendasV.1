@@ -182,96 +182,43 @@ async function migrate() {
       const salesOrderId = sale._id;
       
       // Contas a Receber (Receivable)
-      if (sale.saleType === 'intermediacao') {
-        await db.collection('payments').deleteMany({ salesOrderId, type: 'receivable', orderNumber: sale.orderNumber });
-        
-        const payer = sale.brokeragePayer || 'producer';
-        const amountPayable = brokerageAmount;
-        
-        const createOrUpdateReceivable = async (entityId, entityName, entityWhatsapp, isCustomer, fraction, suffix) => {
-          const val = roundMoney(amountPayable * fraction);
-          if (val <= 0) return;
+      await db.collection('payments').deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [sale.orderNumber + '-P', sale.orderNumber + '-C'] } });
 
-          const existing = await db.collection('payments').findOne({ salesOrderId, type: 'receivable', orderNumber: sale.orderNumber + suffix });
-          if (existing) {
-            const balanceAmount = roundMoney(val - (existing.paidAmount || 0));
-            await db.collection('payments').updateOne({ _id: existing._id }, {
-              $set: {
-                amount: val,
-                balanceAmount,
-                status: balanceAmount <= 0 ? 'paid' : ((existing.paidAmount || 0) > 0 ? 'partial' : 'open')
-              }
-            });
-          } else {
-            await db.collection('payments').insertOne({
-              type: 'receivable',
-              salesOrderId,
-              orderNumber: sale.orderNumber + suffix,
-              customerId: isCustomer ? new ObjectId(entityId) : undefined,
-              customerName: isCustomer ? entityName : undefined,
-              customerWhatsapp: isCustomer ? entityWhatsapp : undefined,
-              producerId: !isCustomer ? new ObjectId(entityId) : undefined,
-              producerName: !isCustomer ? entityName : undefined,
-              amount: val,
-              paidAmount: 0,
-              balanceAmount: val,
-              dueDate: sale.dueDate ? new Date(sale.dueDate) : new Date(),
-              status: 'open',
-              isDeleted: false,
-              history: [],
-            });
+      const amountToReceive = sale.saleType === 'intermediacao'
+        ? roundMoney(totalParticularAmount)
+        : roundMoney(totalReceivableAmount);
+
+      const existing = await db.collection('payments').findOne({ salesOrderId, type: 'receivable', orderNumber: sale.orderNumber });
+      const customer = sale.customerId ? await db.collection('customers').findOne({ _id: new ObjectId(sale.customerId) }) : null;
+      const producer = sale.producerId ? await db.collection('producers').findOne({ _id: new ObjectId(sale.producerId) }) : null;
+
+      if (existing) {
+        const balanceAmount = roundMoney(amountToReceive - (existing.paidAmount || 0));
+        await db.collection('payments').updateOne({ _id: existing._id }, {
+          $set: {
+            amount: amountToReceive,
+            balanceAmount,
+            status: balanceAmount <= 0 ? 'paid' : ((existing.paidAmount || 0) > 0 ? 'partial' : 'open')
           }
-        };
-
-        const customer = sale.customerId ? await db.collection('customers').findOne({ _id: new ObjectId(sale.customerId) }) : null;
-        const producer = sale.producerId ? await db.collection('producers').findOne({ _id: new ObjectId(sale.producerId) }) : null;
-
-        if (payer === 'producer' && producer) {
-          await db.collection('payments').deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [sale.orderNumber + '-C', sale.orderNumber + '-P'] } });
-          await createOrUpdateReceivable(producer._id, producer.name, producer.whatsapp, false, 1, '');
-        } else if (payer === 'customer' && customer) {
-          await db.collection('payments').deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [sale.orderNumber + '-P', sale.orderNumber + '-C'] } });
-          await createOrUpdateReceivable(customer._id, customer.name, customer.whatsapp, true, 1, '');
-        } else if (payer === 'both') {
-          await db.collection('payments').deleteMany({ salesOrderId, type: 'receivable', orderNumber: sale.orderNumber });
-          if (producer) await createOrUpdateReceivable(producer._id, producer.name, producer.whatsapp, false, 0.5, '-P');
-          if (customer) await createOrUpdateReceivable(customer._id, customer.name, customer.whatsapp, true, 0.5, '-C');
-        }
+        });
       } else {
-        await db.collection('payments').deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [sale.orderNumber + '-P', sale.orderNumber + '-C'] } });
-        
-        const existing = await db.collection('payments').findOne({ salesOrderId, type: 'receivable', orderNumber: sale.orderNumber });
-        const customer = sale.customerId ? await db.collection('customers').findOne({ _id: new ObjectId(sale.customerId) }) : null;
-        const producer = sale.producerId ? await db.collection('producers').findOne({ _id: new ObjectId(sale.producerId) }) : null;
-
-        if (existing) {
-          const balanceAmount = roundMoney(totalReceivableAmount - (existing.paidAmount || 0));
-          await db.collection('payments').updateOne({ _id: existing._id }, {
-            $set: {
-              amount: totalReceivableAmount,
-              balanceAmount,
-              status: balanceAmount <= 0 ? 'paid' : ((existing.paidAmount || 0) > 0 ? 'partial' : 'open')
-            }
-          });
-        } else {
-          await db.collection('payments').insertOne({
-            type: 'receivable',
-            salesOrderId,
-            orderNumber: sale.orderNumber,
-            customerId: customer ? customer._id : undefined,
-            customerName: customer ? customer.name : undefined,
-            customerWhatsapp: customer ? customer.whatsapp : undefined,
-            producerId: producer ? producer._id : undefined,
-            producerName: producer ? producer.name : undefined,
-            amount: totalReceivableAmount,
-            paidAmount: 0,
-            balanceAmount: totalReceivableAmount,
-            dueDate: sale.dueDate ? new Date(sale.dueDate) : new Date(),
-            status: 'open',
-            isDeleted: false,
-            history: [],
-          });
-        }
+        await db.collection('payments').insertOne({
+          type: 'receivable',
+          salesOrderId,
+          orderNumber: sale.orderNumber,
+          customerId: customer ? customer._id : undefined,
+          customerName: customer ? customer.name : undefined,
+          customerWhatsapp: customer ? customer.whatsapp : undefined,
+          producerId: producer ? producer._id : undefined,
+          producerName: producer ? producer.name : undefined,
+          amount: amountToReceive,
+          paidAmount: 0,
+          balanceAmount: amountToReceive,
+          dueDate: sale.dueDate ? new Date(sale.dueDate) : new Date(),
+          status: 'open',
+          isDeleted: false,
+          history: [],
+        });
       }
 
       // Contas a Pagar (Payable)

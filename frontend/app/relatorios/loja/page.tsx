@@ -226,7 +226,7 @@ function LojaReportContent() {
 
 
 
-      <div className="executive-summary" style={{ gridTemplateColumns: viewMode === 'cliente' ? 'repeat(5, 1fr)' : 'repeat(6, 1fr)' }}>
+      <div className={`executive-summary ${viewMode === 'cliente' ? 'cols-5' : 'cols-6'}`}>
         <div className="summary-card bg-green">
           <strong>{totalVendas}</strong>
           <span>Vendas</span>

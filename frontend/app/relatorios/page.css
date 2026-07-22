@@ -109,3 +109,22 @@
   letter-spacing: 0.5px;
   border-bottom: 2px solid #eef2eb;
 }
+
+.dates-row {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.relatorios-panel {
+  padding: 2.5rem;
+}
+
+@media (max-width: 480px) {
+  .dates-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .relatorios-panel {
+    padding: 1.5rem;
+  }
+}

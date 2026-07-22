@@ -84,6 +84,10 @@ function LojaReportContent() {
     if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
       return 0;
     }
+    // Na visão do produtor, o líquido deve ser o bruto descontado do FUNRURAL
+    if (viewMode === 'produtor') {
+      return (s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0);
+    }
     return s.totalReceivableAmount ?? 0;
   };
 
@@ -258,10 +262,12 @@ function LojaReportContent() {
           <strong>{money(totalReceber)}</strong>
           <span>Total a Receber</span>
         </div>
-        <div className="summary-card bg-pink">
-          <strong>{money(totalPagar)}</strong>
-          <span>Total a Pagar</span>
-        </div>
+        {viewMode === 'geral' && (
+          <div className="summary-card bg-pink">
+            <strong>{money(totalPagar)}</strong>
+            <span>Total a Pagar</span>
+          </div>
+        )}
         <div className="summary-card bg-pink">
           <strong>{money(totalFunrural)}</strong>
           <span>FUNRURAL</span>
@@ -315,8 +321,8 @@ function LojaReportContent() {
               <th>Bruto Venda</th>
               <th>Líq. a Receber</th>
               <th>Venc. Receber</th>
-              <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>
-              <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>
+              {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
+              {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
               <th>FUNRURAL</th>
               <th>Valor NFe's</th>
  
@@ -344,8 +350,8 @@ function LojaReportContent() {
                   <td>{money(getGrossAmount(s))}</td>
                   <td>{money(getNetAmount(s))}</td>
                   <td>{formatDate(s.dueDate)}</td>
-                  <td>{money(getProducerNetAmount(s))}</td>
-                  <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>
+                  {viewMode === 'geral' && <td>{money(getProducerNetAmount(s))}</td>}
+                  {viewMode === 'geral' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
                   <td>{money(getFunruralAmount(s))}</td>
                   <td>{money(s.nfeValue)}</td>
  
@@ -373,8 +379,8 @@ function LojaReportContent() {
               <td>{money(totalParticular)}</td>
               <td>{money(totalReceber)}</td>
               <td></td>
-              <td>{money(totalPagar)}</td>
-              <td></td>
+              {viewMode === 'geral' && <td>{money(totalPagar)}</td>}
+              {viewMode === 'geral' && <td></td>}
               <td>{money(totalFunrural)}</td>
               <td>{money(totalNFe)}</td>
  

@@ -383,6 +383,7 @@ export default function AgendaPage() {
           </button>
           <button className="btn-calendar-nav" onClick={goToday}>Hoje</button>
           <Link className="link-action" href="/financeiro/cash-flow">Fluxo de Caixa</Link>
+          <Link className="link-action" href="/relatorios">Relatórios</Link>
         </div>
       </section>
 

@@ -198,7 +198,12 @@ async function migrate() {
           $set: {
             amount: amountToReceive,
             balanceAmount,
-            status: balanceAmount <= 0 ? 'paid' : ((existing.paidAmount || 0) > 0 ? 'partial' : 'open')
+            status: balanceAmount <= 0 ? 'paid' : ((existing.paidAmount || 0) > 0 ? 'partial' : 'open'),
+            customerId: customer ? customer._id : undefined,
+            customerName: customer ? customer.name : undefined,
+            customerWhatsapp: customer ? customer.whatsapp : undefined,
+            producerId: producer ? producer._id : undefined,
+            producerName: producer ? producer.name : undefined,
           }
         });
       } else {
@@ -235,7 +240,12 @@ async function migrate() {
             $set: {
               amount: producerNetAmount,
               balanceAmount,
-              status: balanceAmount <= 0 ? 'paid' : ((existingPayable.paidAmount || 0) > 0 ? 'partial' : 'open')
+              status: balanceAmount <= 0 ? 'paid' : ((existingPayable.paidAmount || 0) > 0 ? 'partial' : 'open'),
+              customerId: customer ? customer._id : undefined,
+              customerName: customer ? customer.name : undefined,
+              customerWhatsapp: customer ? customer.whatsapp : undefined,
+              producerId: producer ? producer._id : undefined,
+              producerName: producer ? producer.name : undefined,
             }
           });
         } else if (producerNetAmount > 0) {

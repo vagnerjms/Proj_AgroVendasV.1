@@ -78,20 +78,26 @@ export class PaymentsService {
     // Limpar contas de corretagem antigas com sufixos se existirem
     await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-P', order.orderNumber + '-C'] } });
 
+    const customer = this.extractEntity(order.customerId);
+    const producer = this.extractEntity(order.producerId);
+
     const existing = await this.paymentModel.findOne({ salesOrderId, type: 'receivable', isDeleted: false, orderNumber: order.orderNumber }).lean();
     if (existing) {
-      if (existing.status !== 'cancelled' && existing.amount !== amount) {
+      if (existing.status !== 'cancelled') {
         const balanceAmount = this.roundMoney(amount - existing.paidAmount);
         await this.paymentModel.findByIdAndUpdate(existing._id, {
           amount,
           balanceAmount,
           status: balanceAmount <= 0 ? 'paid' : (existing.paidAmount > 0 ? 'partial' : 'open'),
+          customerId: customer.id ? new Types.ObjectId(customer.id) : undefined,
+          customerName: customer.name,
+          customerWhatsapp: customer.whatsapp,
+          producerId: producer.id ? new Types.ObjectId(producer.id) : undefined,
+          producerName: producer.name,
         });
       }
       return existing;
     }
-    const customer = this.extractEntity(order.customerId);
-    const producer = this.extractEntity(order.producerId);
 
     return this.paymentModel.create({
       type: 'receivable',
@@ -122,14 +128,22 @@ export class PaymentsService {
 
     const amount = this.roundMoney(order.producerNetAmount ?? order.totalReceivableAmount ?? 0);
 
+    const customer = this.extractEntity(order.customerId);
+    const producer = this.extractEntity(order.producerId);
+
     const existing = await this.paymentModel.findOne({ salesOrderId, type: 'payable', isDeleted: false }).lean();
     if (existing) {
-      if (existing.status !== 'cancelled' && existing.amount !== amount) {
+      if (existing.status !== 'cancelled') {
         const balanceAmount = this.roundMoney(amount - existing.paidAmount);
         await this.paymentModel.findByIdAndUpdate(existing._id, {
           amount,
           balanceAmount,
           status: balanceAmount <= 0 ? 'paid' : (existing.paidAmount > 0 ? 'partial' : 'open'),
+          customerId: customer.id ? new Types.ObjectId(customer.id) : undefined,
+          customerName: customer.name,
+          customerWhatsapp: customer.whatsapp,
+          producerId: producer.id ? new Types.ObjectId(producer.id) : undefined,
+          producerName: producer.name,
         });
       }
       return existing;
@@ -137,8 +151,6 @@ export class PaymentsService {
     if (amount <= 0) {
       return null;
     }
-    const customer = this.extractEntity(order.customerId);
-    const producer = this.extractEntity(order.producerId);
 
     return this.paymentModel.create({
       type: 'payable',
@@ -162,19 +174,22 @@ export class PaymentsService {
     const purchaseOrderId = new Types.ObjectId(this.getId(order._id));
     const amount = this.roundMoney(order.producerNetAmount ?? order.totalAmount ?? 0);
 
+    const producer = this.extractEntity(order.producerId);
+
     const existing = await this.paymentModel.findOne({ orderNumber: order.orderNumber, type: 'payable', isDeleted: false }).lean();
     if (existing) {
-      if (existing.status !== 'cancelled' && existing.amount !== amount) {
+      if (existing.status !== 'cancelled') {
         const balanceAmount = this.roundMoney(amount - existing.paidAmount);
         await this.paymentModel.findByIdAndUpdate(existing._id, {
           amount,
           balanceAmount,
           status: balanceAmount <= 0 ? 'paid' : (existing.paidAmount > 0 ? 'partial' : 'open'),
+          producerId: producer.id ? new Types.ObjectId(producer.id) : undefined,
+          producerName: producer.name,
         });
       }
       return existing;
     }
-    const producer = this.extractEntity(order.producerId);
 
     return this.paymentModel.create({
       type: 'payable',

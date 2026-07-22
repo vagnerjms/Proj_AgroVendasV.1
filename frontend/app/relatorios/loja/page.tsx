@@ -80,30 +80,42 @@ function LojaReportContent() {
   };
 
   const getNetAmount = (s: any) => {
+    // tirando líquido a receber em caso de corretagem nas visões de cliente/produtor
     if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
-      return s.totalParticularAmount ?? 0;
+      return 0;
     }
     return s.totalReceivableAmount ?? 0;
   };
 
   const getRecebidoAmount = (s: any) => {
     if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
-      const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.recebido || 0) / s.totalReceivableAmount) : 0;
-      return (s.totalParticularAmount || 0) * ratio;
+      return 0;
     }
     return s.recebido ?? 0;
   };
 
   const getSaldoAmount = (s: any) => {
     if ((viewMode === 'cliente' || viewMode === 'produtor') && s.saleType === 'intermediacao') {
-      const ratio = (s.totalReceivableAmount || 0) > 0 ? ((s.saldo || 0) / s.totalReceivableAmount) : 0;
-      return (s.totalParticularAmount || 0) * ratio;
+      return 0;
     }
     return s.saldo ?? 0;
   };
 
   const getFunruralAmount = (s: any) => {
     return s.funruralRetentionAmount ?? 0;
+  };
+
+  const getProducerNetAmount = (s: any) => {
+    if (s.saleType === 'intermediacao' || s.saleType === 'venda_estoque') return 0;
+    
+    // Na visão do produtor, se for compra_venda, o líquido deve ter o desconto do FUNRURAL
+    if (viewMode === 'produtor' && s.saleType === 'compra_venda') {
+      const cost = s.totalCostAmount ?? s.producerNetAmount ?? 0;
+      const funrural = cost * (s.funruralRate ?? 0.0163);
+      return cost - funrural;
+    }
+    
+    return s.producerNetAmount || 0;
   };
 
   // Common Totals
@@ -113,8 +125,7 @@ function LojaReportContent() {
   const totalParticular = visibleData.reduce((acc, s) => acc + getGrossAmount(s), 0);
   const totalReceber = visibleData.reduce((acc, s) => acc + getNetAmount(s), 0);
   const totalPagar = visibleData.reduce((acc, s) => {
-    if (s.saleType === 'intermediacao' || s.saleType === 'venda_estoque') return acc;
-    return acc + (s.producerNetAmount || 0);
+    return acc + getProducerNetAmount(s);
   }, 0);
   const totalFunrural = visibleData.reduce((acc, s) => acc + getFunruralAmount(s), 0);
   const totalNFe = visibleData.reduce((acc, s) => acc + (s.nfeValue || 0), 0);
@@ -226,7 +237,7 @@ function LojaReportContent() {
 
 
 
-      <div className={`executive-summary ${viewMode === 'cliente' ? 'cols-5' : 'cols-6'}`}>
+      <div className="executive-summary cols-6">
         <div className="summary-card bg-green">
           <strong>{totalVendas}</strong>
           <span>Vendas</span>
@@ -247,18 +258,14 @@ function LojaReportContent() {
           <strong>{money(totalReceber)}</strong>
           <span>Total a Receber</span>
         </div>
-        {viewMode !== 'cliente' && (
-          <div className="summary-card bg-pink">
-            <strong>{money(totalPagar)}</strong>
-            <span>Total a Pagar</span>
-          </div>
-        )}
-        {viewMode !== 'cliente' && (
-          <div className="summary-card bg-pink">
-            <strong>{money(totalFunrural)}</strong>
-            <span>FUNRURAL</span>
-          </div>
-        )}
+        <div className="summary-card bg-pink">
+          <strong>{money(totalPagar)}</strong>
+          <span>Total a Pagar</span>
+        </div>
+        <div className="summary-card bg-pink">
+          <strong>{money(totalFunrural)}</strong>
+          <span>FUNRURAL</span>
+        </div>
         <div className="summary-card bg-blue">
           <strong>{money(totalNFe)}</strong>
           <span>Valor NFe's</span>
@@ -296,8 +303,8 @@ function LojaReportContent() {
             <tr>
               <th>Part.</th>
               <th>Data</th>
-              {viewMode !== 'cliente' && <th>Produtor</th>}
-              {viewMode !== 'produtor' && <th>Destinatário</th>}
+              <th>Produtor</th>
+              <th>Destinatário</th>
               
               {uniqueProducts.map((prodName) => (
                 <th key={prodName} style={{background: '#c8e6c9', color: '#333', whiteSpace: 'nowrap'}}>
@@ -305,16 +312,16 @@ function LojaReportContent() {
                 </th>
               ))}
               
-              <th>{viewMode === 'produtor' ? 'Valor venda' : 'Bruto Venda'}</th>
+              <th>Bruto Venda</th>
               <th>Líq. a Receber</th>
               <th>Venc. Receber</th>
-              {viewMode !== 'cliente' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
-              {viewMode !== 'cliente' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
-              {viewMode !== 'cliente' && <th>FUNRURAL</th>}
+              <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>
+              <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>
+              <th>FUNRURAL</th>
               <th>Valor NFe's</th>
-
+ 
               {viewMode === 'geral' && <th style={{background: '#b39ddb', color: '#333'}}>Lucro Líquido</th>}
-
+ 
               <th>Recebido</th>
               <th>Status</th>
             </tr>
@@ -325,8 +332,8 @@ function LojaReportContent() {
                 <tr key={s._id}>
                   <td>{s.orderNumber}</td>
                   <td style={{whiteSpace: 'nowrap'}}>{formatDate(s.date)}</td>
-                  {viewMode !== 'cliente' && <td style={{textAlign: 'left'}}>{s.producerName}</td>}
-                  {viewMode !== 'produtor' && <td style={{textAlign: 'left'}}>{s.customerName}</td>}
+                  <td style={{textAlign: 'left'}}>{s.producerName}</td>
+                  <td style={{textAlign: 'left'}}>{s.customerName}</td>
                   
                   {uniqueProducts.map((prodName) => (
                     <td key={prodName} style={{whiteSpace: 'nowrap'}}>
@@ -337,13 +344,13 @@ function LojaReportContent() {
                   <td>{money(getGrossAmount(s))}</td>
                   <td>{money(getNetAmount(s))}</td>
                   <td>{formatDate(s.dueDate)}</td>
-                  {viewMode !== 'cliente' && <td>{money(s.producerNetAmount || 0)}</td>}
-                  {viewMode !== 'cliente' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
-                  {viewMode !== 'cliente' && <td>{money(getFunruralAmount(s))}</td>}
+                  <td>{money(getProducerNetAmount(s))}</td>
+                  <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>
+                  <td>{money(getFunruralAmount(s))}</td>
                   <td>{money(s.nfeValue)}</td>
-
+ 
                   {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
-
+ 
                   <td>{money(getRecebidoAmount(s))}</td>
                   <td>{getSaldoAmount(s) > 0 ? 'Em aberto' : 'Pago'}</td>
                 </tr>
@@ -352,7 +359,7 @@ function LojaReportContent() {
             
             {/* Linha de Totais Finais */}
             <tr className="totals-row">
-              <td colSpan={viewMode === 'cliente' ? 3 : (viewMode === 'produtor' ? 3 : 4)}>TOTAL</td>
+              <td colSpan={4}>TOTAL</td>
               
               {uniqueProducts.map((prodName) => {
                 const qty = getProductTotalQty(prodName);
@@ -366,13 +373,13 @@ function LojaReportContent() {
               <td>{money(totalParticular)}</td>
               <td>{money(totalReceber)}</td>
               <td></td>
-              {viewMode !== 'cliente' && <td>{money(totalPagar)}</td>}
-              {viewMode !== 'cliente' && <td></td>}
-              {viewMode !== 'cliente' && <td>{money(totalFunrural)}</td>}
+              <td>{money(totalPagar)}</td>
+              <td></td>
+              <td>{money(totalFunrural)}</td>
               <td>{money(totalNFe)}</td>
-
+ 
               {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: totalLucro < 0 ? 'red' : 'green'}}>{money(totalLucro)}</td>}
-
+ 
               <td>{money(totalRecebido)}</td>
               <td></td>
             </tr>

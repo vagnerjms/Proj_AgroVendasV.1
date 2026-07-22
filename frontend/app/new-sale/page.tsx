@@ -163,7 +163,7 @@ export default function NewSalePage() {
           return { ...item, productId: value, bagWeightKg: defaultWeight, quantityKg: undefined };
         }
         if (field === 'quantityBags') {
-          return { ...item, quantityBags: Number(value), quantityKg: undefined };
+          return { ...item, quantityBags: value === '' ? 0 : Number(value), quantityKg: undefined };
         }
         return { ...item, [field]: value === '' ? undefined : Number(value) };
       }),
@@ -415,14 +415,14 @@ export default function NewSalePage() {
                       <option value="">Selecione...</option>
                       {products.map((product) => <option key={product._id} value={product._id}>{product.name}</option>)}
                     </select>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                      <NumericFormat
                         aria-label={`Qtd linha ${index + 1}`}
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={item.quantityBags}
-                        onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
+                        value={item.quantityBags || ''}
+                        onValueChange={(values) => updateItem(item.id, 'quantityBags', String(values.floatValue ?? ''))}
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        allowNegative={false}
                         style={{ flex: 1, minWidth: 0 }}
                       />
                       <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>{getUnitSuffix(selectedProduct)}</span>

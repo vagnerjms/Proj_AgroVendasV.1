@@ -92,8 +92,15 @@ async function migrate() {
         };
       });
 
+      const fiscalDocs = await db.collection('fiscaldocuments').find({
+        salesOrderId: sale._id,
+        isDeleted: false,
+        status: { $ne: 'cancelled' }
+      }).toArray();
+      const nfeTotalAmount = fiscalDocs.reduce((sum, doc) => sum + (doc.amount || 0), 0);
+
       const baseAmountValue = totalParticularAmount;
-      const taxBaseAmount = (sale.nfeTotalAmount && sale.nfeTotalAmount > 0) ? sale.nfeTotalAmount : baseAmountValue;
+      const taxBaseAmount = (nfeTotalAmount > 0) ? nfeTotalAmount : baseAmountValue;
 
       const funruralSocialSecurityAmount = roundMoney(taxBaseAmount * funruralSocialSecurityRate);
       const funruralRatAmount = roundMoney(taxBaseAmount * funruralRatRate);

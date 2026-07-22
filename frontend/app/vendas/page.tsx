@@ -187,6 +187,7 @@ export default function SalesListPage() {
             <span>Produtor</span>
             <span>Sacos</span>
             <span>Total</span>
+            <span>Líquido</span>
             <span>Valor NF</span>
             <span>Status</span>
           </div>
@@ -217,6 +218,7 @@ export default function SalesListPage() {
               <span>{order.customerId?.name ?? '-'}</span>
               <span>{order.producerId?.name ?? '-'}</span>
               <span>{order.totalBags ?? 0}</span>
+              <span>{money(order.totalParticularAmount ?? 0)}</span>
               <span>{money(order.totalReceivableAmount ?? 0)}</span>
               <span>{order.fiscalDocumentAmount ? money(order.fiscalDocumentAmount) : '-'}</span>
               <span>{statusLabel(order.status)}</span>

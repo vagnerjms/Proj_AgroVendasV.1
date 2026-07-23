@@ -315,8 +315,9 @@
 
 /* Estilos aplicados temporariamente durante a geração de PDF via html2pdf.js */
 .html2pdf-printing {
-  width: 1550px !important;
-  max-width: 1550px !important;
+  width: max-content !important;
+  max-width: none !important;
+  min-width: 100% !important;
   padding: 20px !important;
   box-sizing: border-box !important;
   background: #ffffff !important;

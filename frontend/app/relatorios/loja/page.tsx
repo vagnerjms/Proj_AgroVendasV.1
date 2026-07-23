@@ -235,12 +235,15 @@ function LojaReportContent() {
       // Wait 150ms to allow the browser's rendering engine to process style changes and fully reflow the page to 1550px desktop mode
       await new Promise((resolve) => setTimeout(resolve, 150));
       
+      // Get the real element height to define custom page height in points
+      const elementHeight = element.getBoundingClientRect().height || 1000;
+      
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: 0,
         filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 1600 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        html2canvas: { scale: 1.5, useCORS: true, logging: false, windowWidth: 1600 },
+        jsPDF: { unit: 'pt', format: [1550, elementHeight + 40], orientation: 'landscape' }
       };
 
       // Generate the PDF as a Blob

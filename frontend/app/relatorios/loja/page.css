@@ -315,9 +315,8 @@
 
 /* Estilos aplicados temporariamente durante a geração de PDF via html2pdf.js */
 .html2pdf-printing {
-  width: max-content !important;
-  max-width: none !important;
-  min-width: 100% !important;
+  width: 1550px !important;
+  max-width: 1550px !important;
   padding: 20px !important;
   box-sizing: border-box !important;
   background: #ffffff !important;
@@ -327,14 +326,14 @@
 .html2pdf-printing .table-scroll-wrapper {
   overflow: visible !important;
   width: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
   display: block !important;
 }
 
 .html2pdf-printing .loja-table {
-  width: max-content !important;
+  width: 100% !important;
   min-width: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
   table-layout: auto !important;
   font-size: 8.5pt !important;
 }

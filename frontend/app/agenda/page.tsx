@@ -360,30 +360,7 @@ export default function AgendaPage() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            type="button"
-            className="btn-calendar-nav"
-            onClick={() => setShowMobileModal(true)}
-            style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534', fontWeight: 600 }}
-          >
-            📱 Abrir / Criar App no Celular
-          </button>
-          <button
-            type="button"
-            className={`btn-calendar-nav ${notificationPermission === 'granted' ? 'active' : ''}`}
-            onClick={requestNotificationPermission}
-            style={{
-              background: notificationPermission === 'granted' ? '#f0fdf4' : '#ffffff',
-              borderColor: notificationPermission === 'granted' ? '#16a34a' : '#cbd5e1',
-              color: notificationPermission === 'granted' ? '#166534' : '#334155',
-              fontWeight: 600,
-            }}
-          >
-            {notificationPermission === 'granted' ? '✅ Notificações no Celular Ativas' : '🔔 Ativar Notificações no Celular'}
-          </button>
           <button className="btn-calendar-nav" onClick={goToday}>Hoje</button>
-          <Link className="link-action" href="/financeiro/cash-flow">Fluxo de Caixa</Link>
-          <Link className="link-action" href="/relatorios">Relatórios</Link>
         </div>
       </section>
 

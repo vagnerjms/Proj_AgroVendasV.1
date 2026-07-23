@@ -280,7 +280,7 @@ function LojaReportContent() {
         </div>
         <div className="summary-card bg-yellow">
           <strong>{money(totalReceber)}</strong>
-          <span>Total a Receber</span>
+          <span>{viewMode === 'cliente' ? 'Total a Pagar' : 'Total a Receber'}</span>
         </div>
         {viewMode === 'geral' && (
           <div className="summary-card bg-pink">
@@ -339,7 +339,7 @@ function LojaReportContent() {
               ))}
               
               <th>Bruto Venda</th>
-              <th>Líq. a Receber</th>
+              <th>{viewMode === 'cliente' ? 'Líq. a Pagar' : 'Líq. a Receber'}</th>
               <th>Venc. Receber</th>
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}

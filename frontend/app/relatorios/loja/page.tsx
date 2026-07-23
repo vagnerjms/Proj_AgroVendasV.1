@@ -273,35 +273,27 @@ function LojaReportContent() {
 
       // Public URL pointing to the static served PDF file
       let pdfUrl = `${getApiUrl()}/health/pdf/${uploadResult.filename}`;
-      let onlineUrl = window.location.href;
 
-      // Shorten URLs using TinyURL to force WhatsApp to render them as clickable blue hyperlinks (raw IPs are ignored by WhatsApp)
+      // Shorten URL using TinyURL to force WhatsApp to render it as clickable blue hyperlink (raw IPs are ignored by WhatsApp)
       try {
-        const [shortPdfRes, shortOnlineRes] = await Promise.all([
-          fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(pdfUrl)}`),
-          fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(onlineUrl)}`)
-        ]);
+        const shortPdfRes = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(pdfUrl)}`);
         if (shortPdfRes.ok) {
           const shortPdf = await shortPdfRes.text();
           if (shortPdf && shortPdf.startsWith('http')) pdfUrl = shortPdf;
         }
-        if (shortOnlineRes.ok) {
-          const shortOnline = await shortOnlineRes.text();
-          if (shortOnline && shortOnline.startsWith('http')) onlineUrl = shortOnline;
-        }
       } catch (shortenErr) {
-        console.error('Erro ao encurtar links com TinyURL:', shortenErr);
+        console.error('Erro ao encurtar link do PDF com TinyURL:', shortenErr);
       }
 
-      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nVisualizar/Baixar PDF:\n${pdfUrl}\n\nPara acessar online:\n${onlineUrl}`;
+      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nVisualizar/Baixar PDF:\n${pdfUrl}`;
 
       // Open WhatsApp Web/App
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, '_blank');
     } catch (err) {
       console.error('Falha ao gerar ou compartilhar o PDF', err);
-      // Fallback simple: just open WhatsApp text link with the online page URL
-      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nPara acessar online:\n${window.location.href}`;
+      // Fallback simple: just open WhatsApp text message
+      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.`;
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, '_blank');
     } finally {

@@ -133,6 +133,7 @@ export default function Home() {
                 <Link href="/compras">📄 Hist. Compras</Link>
                 <Link href="/vendas">📋 Hist. Vendas</Link>
                 <Link href="/agenda">📅 Agenda & Alertas</Link>
+                {canCadastros && <Link href="/relatorios">📊 Relatórios</Link>}
               </div>
             </div>
           )}
@@ -166,7 +167,7 @@ export default function Home() {
               <div className="nav-group-items">
                 <Link href="/partners">👥 Parceiros</Link>
                 <Link href="/products">📦 Produtos</Link>
-                <Link href="/relatorios">📊 Relatórios</Link>
+                {(!canComercial) && <Link href="/relatorios">📊 Relatórios</Link>}
                 <Link href="/alertas">⚠️ Alertas</Link>
                 {isAdmin && <Link href="/usuarios">👤 Usuários</Link>}
                 {isAdmin && <Link href="/backup">💾 Backup & Restauração</Link>}

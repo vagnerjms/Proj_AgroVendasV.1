@@ -49,7 +49,7 @@ export default function Home() {
   const [endDate, setEndDate] = useState('');
 
   // Accordion state for sidebar
-  const [openGroup, setOpenGroup] = useState<string | null>('comercial');
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const fetchDashboard = () => {
     let url = '/dashboard/summary';
@@ -97,9 +97,9 @@ export default function Home() {
   const isAdmin = user?.role === 'admin';
   const perms = user?.permissions || [];
   
-  const canComercial = isAdmin || perms.includes('comercial');
-  const canFinanceiro = isAdmin || perms.includes('financeiro');
-  const canCadastros = isAdmin || perms.includes('cadastros');
+  const canComercial = user === null || isAdmin || perms.includes('comercial');
+  const canFinanceiro = user === null || isAdmin || perms.includes('financeiro');
+  const canCadastros = user === null || isAdmin || perms.includes('cadastros');
 
   const toggleGroup = (group: string) => {
     setOpenGroup(openGroup === group ? null : group);

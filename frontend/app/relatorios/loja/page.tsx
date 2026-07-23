@@ -299,7 +299,6 @@ function LojaReportContent() {
       setSharing(false);
     }
   };
-  };
 
 
   const getProductCellData = (sale: any, productName: string) => {

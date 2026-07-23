@@ -120,6 +120,7 @@ export default function Home() {
                 <Link href="/new-sale">📤 Nova Venda</Link>
                 <Link href="/compras">📄 Hist. Compras</Link>
                 <Link href="/vendas">📋 Hist. Vendas</Link>
+                <Link href="/agenda">📅 Agenda & Alertas</Link>
               </div>
             </div>
           )}
@@ -134,7 +135,6 @@ export default function Home() {
               </button>
               <div className="nav-group-items">
                 <Link href="/financeiro/cash-flow">📈 Fluxo de Caixa</Link>
-                <Link href="/agenda">📅 Agenda & Alertas</Link>
                 <Link href="/financeiro/receber">💵 A Receber</Link>
                 <Link href="/financeiro/pagar">💸 A Pagar</Link>
                 <Link href="/fiscal">🧾 Fiscal</Link>

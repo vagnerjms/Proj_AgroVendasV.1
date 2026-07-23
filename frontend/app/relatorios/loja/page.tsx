@@ -80,20 +80,16 @@ function LojaReportContent() {
   };
 
   const getNetAmount = (s: any) => {
-    // Na visão do produtor, o líquido deve ser o bruto descontado do FUNRURAL
-    if (viewMode === 'produtor') {
+    // Na visão do produtor e do cliente, o líquido deve ser o bruto descontado do FUNRURAL
+    if (viewMode === 'produtor' || viewMode === 'cliente') {
       return (s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0);
-    }
-    // tirando líquido a receber em caso de corretagem na visão do cliente
-    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
-      return 0;
     }
     return s.totalReceivableAmount ?? 0;
   };
 
   const getRecebidoAmount = (s: any) => {
-    // Na visão do produtor, o recebido deve refletir a proporção do valor bruto recebido
-    if (viewMode === 'produtor') {
+    // Na visão do produtor e do cliente, o recebido deve refletir a proporção do valor bruto recebido
+    if (viewMode === 'produtor' || viewMode === 'cliente') {
       const totalAmt = s.totalParticularAmount || 0;
       if (totalAmt > 0) {
         const ratio = (s.recebido || 0) / totalAmt;
@@ -101,25 +97,17 @@ function LojaReportContent() {
       }
       return 0;
     }
-    // tirando recebido em caso de corretagem na visão do cliente
-    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
-      return 0;
-    }
     return s.recebido ?? 0;
   };
 
   const getSaldoAmount = (s: any) => {
-    // Na visão do produtor, o saldo deve refletir a proporção do saldo restante
-    if (viewMode === 'produtor') {
+    // Na visão do produtor e do cliente, o saldo deve refletir a proporção do saldo restante
+    if (viewMode === 'produtor' || viewMode === 'cliente') {
       const totalAmt = s.totalParticularAmount || 0;
       if (totalAmt > 0) {
         const ratio = (s.saldo || 0) / totalAmt;
         return ((s.totalParticularAmount || 0) - (s.funruralRetentionAmount || 0)) * ratio;
       }
-      return 0;
-    }
-    // tirando saldo em caso de corretagem na visão do cliente
-    if (viewMode === 'cliente' && s.saleType === 'intermediacao') {
       return 0;
     }
     return s.saldo ?? 0;

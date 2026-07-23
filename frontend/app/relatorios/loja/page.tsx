@@ -232,21 +232,21 @@ function LojaReportContent() {
            style={{background: viewMode === 'cliente' ? '#2e7d32' : '#cfd8dc', color: viewMode === 'cliente' ? '#fff' : '#333'}}
            onClick={() => changeViewMode('cliente')}
         >
-          Visão Destinatário (Cliente)
+          Cliente
         </button>
         <button 
            className={`print-btn ${viewMode === 'produtor' ? '' : 'inactive'}`} 
            style={{background: viewMode === 'produtor' ? '#0d47a1' : '#cfd8dc', color: viewMode === 'produtor' ? '#fff' : '#333'}}
            onClick={() => changeViewMode('produtor')}
         >
-          Visão Produtor (Detalhada)
+          Produtor
         </button>
         <button 
            className={`print-btn ${viewMode === 'geral' ? '' : 'inactive'}`} 
            style={{background: viewMode === 'geral' ? '#4a148c' : '#cfd8dc', color: viewMode === 'geral' ? '#fff' : '#333'}}
            onClick={() => changeViewMode('geral')}
         >
-          Visão Geral (Completa)
+          Geral
         </button>
         
         <div style={{flexGrow: 1}}></div>

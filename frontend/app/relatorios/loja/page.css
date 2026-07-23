@@ -276,21 +276,26 @@
 
 @media (max-width: 768px) {
   .print-controls {
-    display: flex;
-    flex-direction: row !important;
-    background-color: #eceff1;
-    padding: 4px;
-    border-radius: 8px;
-    gap: 4px !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
     margin-bottom: 1.5rem;
+    background: none !important;
+    padding: 0 !important;
   }
-  .print-btn {
-    flex: 1;
+  .print-btn, .back-btn {
+    width: 100% !important;
     padding: 0.5rem 0.25rem !important;
-    font-size: 0.72rem !important;
+    font-size: 0.75rem !important;
     border-radius: 6px !important;
     text-align: center;
     white-space: nowrap;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    height: 38px !important;
+    margin: 0 !important;
   }
   .executive-summary.cols-5,
   .executive-summary.cols-6 {

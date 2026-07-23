@@ -232,6 +232,9 @@ function LojaReportContent() {
       // Add print formatting class
       element.classList.add('html2pdf-printing');
       
+      // Wait 150ms to allow the browser's rendering engine to process style changes and fully reflow the page to 1550px desktop mode
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      
       const opt = {
         margin: [10, 10, 10, 10],
         filename,

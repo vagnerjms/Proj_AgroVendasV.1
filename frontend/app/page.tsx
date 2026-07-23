@@ -41,19 +41,7 @@ const emptySummary: DashboardSummary = {
 export default function Home() {
   const router = useRouter();
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
-  const [user, setUser] = useState<CurrentUser | null>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem('user');
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          return null;
-        }
-      }
-    }
-    return null;
-  });
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Date filters
@@ -78,6 +66,15 @@ export default function Home() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('user');
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch (e) {}
+      }
+    }
+
     apiGet<CurrentUser>('/auth/me')
       .then(setUser)
       .catch(() => {

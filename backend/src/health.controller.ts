@@ -23,9 +23,29 @@ export class HealthController {
     };
   }
 
+  private cleanOldFiles() {
+    try {
+      const now = Date.now();
+      const files = fs.readdirSync(this.uploadDir);
+      for (const file of files) {
+        const filePath = path.join(this.uploadDir, file);
+        const stats = fs.statSync(filePath);
+        const fileAgeMs = now - stats.mtimeMs;
+        // Se o arquivo tiver mais de 24 horas (86400000 ms)
+        if (fileAgeMs > 86400000) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao limpar arquivos PDF antigos:', err);
+    }
+  }
+
   @Post('upload-pdf')
   @UseInterceptors(FileInterceptor('file'))
   uploadPdf(@UploadedFile() file: any) {
+    this.cleanOldFiles();
+
     if (!file) {
       return { error: 'Nenhum arquivo enviado.' };
     }
@@ -48,5 +68,16 @@ export class HealthController {
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
+
+    // Deletar o PDF temporário imediatamente após o envio da transmissão ser finalizado
+    fileStream.on('close', () => {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.error('Erro ao excluir arquivo PDF temporario:', err);
+      }
+    });
   }
 }

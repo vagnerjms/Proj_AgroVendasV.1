@@ -315,6 +315,20 @@ function LojaReportContent() {
   };
 
 
+  const getProductUnit = (productName: string) => {
+    if (productName.toLowerCase().includes('cenoura')) {
+      return 'cx';
+    }
+    // Search in the list for the registered unit
+    for (const sale of visibleData) {
+      const matched = (sale.items || []).find((item: any) => item.productId?.name === productName);
+      if (matched?.productId?.defaultUnit) {
+        return matched.productId.defaultUnit;
+      }
+    }
+    return 'sc';
+  };
+
   const getProductCellData = (sale: any, productName: string) => {
     const items = sale.items || [];
     const matchedItems = items.filter((item: any) => item.productId?.name === productName);
@@ -329,7 +343,7 @@ function LojaReportContent() {
     });
     
     const uniquePrices = Array.from(new Set(prices)).join(' / ');
-    const unit = matchedItems[0]?.productId?.defaultUnit || 'sc';
+    const unit = getProductUnit(productName);
 
     return `${totalQty} ${unit} (${uniquePrices})`;
   };
@@ -525,9 +539,10 @@ function LojaReportContent() {
               
               {uniqueProducts.map((prodName) => {
                 const qty = getProductTotalQty(prodName);
+                const unit = getProductUnit(prodName);
                 return (
                   <td key={prodName} style={{fontWeight: 'bold'}}>
-                    {qty > 0 ? `${qty}` : '-'}
+                    {qty > 0 ? `${qty} ${unit}` : '-'}
                   </td>
                 );
               })}

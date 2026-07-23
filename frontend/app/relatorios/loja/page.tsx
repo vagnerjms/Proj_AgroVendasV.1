@@ -235,7 +235,7 @@ function LojaReportContent() {
           text: textMsg
         });
       } else {
-        // Fallback for Desktop: trigger file download + open WhatsApp Web
+        // Fallback: trigger file download + open WhatsApp
         const downloadUrl = URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -245,8 +245,12 @@ function LojaReportContent() {
         document.body.removeChild(link);
         URL.revokeObjectURL(downloadUrl);
 
-        // Open WhatsApp Web with text link instructions
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg + '\n\n(O arquivo PDF foi baixado em seu computador, anexe-o na conversa do WhatsApp)')}`;
+        const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const deviceName = isMobile ? 'celular' : 'computador';
+        const folderName = isMobile ? 'Arquivos / Downloads' : 'Downloads';
+
+        // Open WhatsApp with text link instructions
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg + `\n\n(O arquivo PDF foi baixado em seu ${deviceName}. Anexe o PDF da pasta ${folderName} na conversa do WhatsApp)`)}`;
         window.open(whatsappUrl, '_blank');
       }
     } catch (err) {

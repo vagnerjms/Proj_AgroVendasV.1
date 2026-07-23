@@ -120,7 +120,7 @@ export default function Home() {
                 <Link href="/new-sale">📤 Nova Venda</Link>
                 <Link href="/compras">📄 Hist. Compras</Link>
                 <Link href="/vendas">📋 Hist. Vendas</Link>
-                <Link href="/agenda">📅 Agenda & Alertas</Link>
+                {canFinanceiro && <Link href="/agenda">📅 Agenda & Alertas</Link>}
               </div>
             </div>
           )}

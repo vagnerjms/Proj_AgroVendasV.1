@@ -210,19 +210,27 @@ function LojaReportContent() {
     const modeText = viewMode === 'cliente' ? 'Cliente' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
     const filename = `Relatorio_${modeText}_${start || ''}_${end || ''}.pdf`;
 
-    let clonedElement: HTMLElement | null = null;
+    // Save original styles to restore later
+    const originalBodyWidth = document.body.style.width;
+    const originalHtmlWidth = document.documentElement.style.width;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const element = document.querySelector('.loja-report-wrapper');
 
     try {
       const html2pdf = await loadHtml2Pdf();
-      const originalElement = document.querySelector('.loja-report-wrapper');
-      if (!originalElement) {
+      if (!element) {
         throw new Error('Elemento do relatório não encontrado.');
       }
 
-      // Clone original element to avoid parent overflow clipping and mobile media query interference
-      clonedElement = originalElement.cloneNode(true) as HTMLElement;
-      clonedElement.classList.add('html2pdf-printing-clone');
-      document.body.appendChild(clonedElement);
+      // Temporarily change document width to desktop mode (1550px) to force desktop media queries & layouts
+      document.documentElement.style.width = '1550px';
+      document.body.style.width = '1550px';
+      document.documentElement.style.overflow = 'visible';
+      document.body.style.overflow = 'visible';
+
+      // Add print formatting class
+      element.classList.add('html2pdf-printing');
       
       const opt = {
         margin: [10, 10, 10, 10],
@@ -232,14 +240,15 @@ function LojaReportContent() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
       };
 
-      // Generate the PDF as a Blob using the un-clipped offscreen clone
-      const pdfBlob = await html2pdf().from(clonedElement).set(opt).outputPdf('blob');
+      // Generate the PDF as a Blob
+      const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
       
-      // Clean up clone immediately
-      if (clonedElement && clonedElement.parentNode) {
-        clonedElement.parentNode.removeChild(clonedElement);
-        clonedElement = null;
-      }
+      // Restore styles immediately
+      document.documentElement.style.width = originalHtmlWidth;
+      document.body.style.width = originalBodyWidth;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      element.classList.remove('html2pdf-printing');
       
       // Upload PDF Blob to backend to serve as a public direct link
       const formData = new FormData();
@@ -293,8 +302,13 @@ function LojaReportContent() {
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, '_blank');
     } finally {
-      if (clonedElement && clonedElement.parentNode) {
-        clonedElement.parentNode.removeChild(clonedElement);
+      // Ensure restoration under all conditions
+      document.documentElement.style.width = originalHtmlWidth;
+      document.body.style.width = originalBodyWidth;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      if (element) {
+        element.classList.remove('html2pdf-printing');
       }
       setSharing(false);
     }

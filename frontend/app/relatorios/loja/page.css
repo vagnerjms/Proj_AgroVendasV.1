@@ -313,24 +313,30 @@
   }
 }
 
-/* Estilos aplicados temporariamente durante a geração de PDF via html2pdf.js */
-.html2pdf-printing {
+/* Classe aplicada exclusivamente ao clone temporário fora da tela para geração do PDF */
+.html2pdf-printing-clone {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
   width: 1550px !important;
   max-width: 1550px !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
+  height: auto !important;
+  z-index: -99999 !important;
   background: #ffffff !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  padding: 30px !important;
   display: block !important;
 }
 
-.html2pdf-printing .table-scroll-wrapper {
+.html2pdf-printing-clone .table-scroll-wrapper {
   overflow: visible !important;
   width: 100% !important;
   max-width: 100% !important;
   display: block !important;
 }
 
-.html2pdf-printing .loja-table {
+.html2pdf-printing-clone .loja-table {
   width: 100% !important;
   min-width: 100% !important;
   max-width: 100% !important;
@@ -338,17 +344,37 @@
   font-size: 8.5pt !important;
 }
 
-.html2pdf-printing .loja-table th, 
-.html2pdf-printing .loja-table td {
+.html2pdf-printing-clone .loja-table th, 
+.html2pdf-printing-clone .loja-table td {
   padding: 6px 4px !important;
   white-space: nowrap !important; /* Mantém os textos retos para um visual limpo de planilha */
 }
 
-.html2pdf-printing .executive-summary {
+.html2pdf-printing-clone .executive-summary {
   grid-template-columns: repeat(6, 1fr) !important;
   gap: 8px !important;
   width: 100% !important;
   max-width: 100% !important;
+}
+
+/* Ocultar barra cinza de botões no clone */
+.html2pdf-printing-clone .print-controls {
+  display: none !important;
+}
+
+/* Ocultar pseudo-elementos de mobile (como scroll tip) e desfazer colunas sticky no clone do PDF */
+.html2pdf-printing-clone div::before,
+.html2pdf-printing-clone .table-scroll-wrapper::before {
+  display: none !important;
+  content: none !important;
+}
+
+.html2pdf-printing-clone .loja-table th:first-child,
+.html2pdf-printing-clone .loja-table td:first-child,
+.html2pdf-printing-clone .totals-row td:first-child {
+  position: static !important;
+  box-shadow: none !important;
+  background-color: inherit !important;
 }
 
 @media print {

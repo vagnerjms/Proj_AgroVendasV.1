@@ -210,12 +210,19 @@ function LojaReportContent() {
     const modeText = viewMode === 'cliente' ? 'Cliente' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
     const filename = `Relatorio_${modeText}_${start || ''}_${end || ''}.pdf`;
 
+    let clonedElement: HTMLElement | null = null;
+
     try {
       const html2pdf = await loadHtml2Pdf();
-      const element = document.querySelector('.loja-report-wrapper');
-      if (element) {
-        element.classList.add('html2pdf-printing');
+      const originalElement = document.querySelector('.loja-report-wrapper');
+      if (!originalElement) {
+        throw new Error('Elemento do relatório não encontrado.');
       }
+
+      // Clone original element to avoid parent overflow clipping and mobile media query interference
+      clonedElement = originalElement.cloneNode(true) as HTMLElement;
+      clonedElement.classList.add('html2pdf-printing-clone');
+      document.body.appendChild(clonedElement);
       
       const opt = {
         margin: [10, 10, 10, 10],
@@ -225,11 +232,13 @@ function LojaReportContent() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
       };
 
-      // Generate the PDF as a Blob
-      const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
+      // Generate the PDF as a Blob using the un-clipped offscreen clone
+      const pdfBlob = await html2pdf().from(clonedElement).set(opt).outputPdf('blob');
       
-      if (element) {
-        element.classList.remove('html2pdf-printing');
+      // Clean up clone immediately
+      if (clonedElement && clonedElement.parentNode) {
+        clonedElement.parentNode.removeChild(clonedElement);
+        clonedElement = null;
       }
       
       // Upload PDF Blob to backend to serve as a public direct link
@@ -284,12 +293,12 @@ function LojaReportContent() {
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, '_blank');
     } finally {
-      const element = document.querySelector('.loja-report-wrapper');
-      if (element) {
-        element.classList.remove('html2pdf-printing');
+      if (clonedElement && clonedElement.parentNode) {
+        clonedElement.parentNode.removeChild(clonedElement);
       }
       setSharing(false);
     }
+  };
   };
 
 

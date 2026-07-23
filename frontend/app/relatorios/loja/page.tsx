@@ -9,7 +9,15 @@ import { useSearchParams } from 'next/navigation';
 function LojaReportContent() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'cliente' | 'produtor' | 'geral'>('cliente');
+  const [viewMode, setViewMode] = useState<'cliente' | 'produtor' | 'geral'>(() => {
+    if (typeof window !== 'undefined') {
+      const mode = new URLSearchParams(window.location.search).get('viewMode');
+      if (mode === 'cliente' || mode === 'produtor' || mode === 'geral') {
+        return mode;
+      }
+    }
+    return 'cliente';
+  });
   const searchParams = useSearchParams();
   const start = searchParams.get('start');
   const end = searchParams.get('end');
@@ -169,6 +177,24 @@ function LojaReportContent() {
     return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   }
 
+  const changeViewMode = (mode: 'cliente' | 'produtor' | 'geral') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('viewMode', mode);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const currentUrl = window.location.href;
+    const dateText = (start && end) ? `de ${formatDate(start)} a ${formatDate(end)}` : '';
+    const modeText = viewMode === 'cliente' ? 'Destinatário (Cliente)' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
+    const text = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nPara visualizar e salvar em PDF (Configurado para Paisagem), acesse:\n${currentUrl}`;
+    const encodedText = encodeURIComponent(text);
+    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+  };
+
 
   const getProductCellData = (sale: any, productName: string) => {
     const items = sale.items || [];
@@ -204,27 +230,30 @@ function LojaReportContent() {
         <button 
            className={`print-btn ${viewMode === 'cliente' ? '' : 'inactive'}`} 
            style={{background: viewMode === 'cliente' ? '#2e7d32' : '#cfd8dc', color: viewMode === 'cliente' ? '#fff' : '#333'}}
-           onClick={() => setViewMode('cliente')}
+           onClick={() => changeViewMode('cliente')}
         >
           Visão Destinatário (Cliente)
         </button>
         <button 
            className={`print-btn ${viewMode === 'produtor' ? '' : 'inactive'}`} 
            style={{background: viewMode === 'produtor' ? '#0d47a1' : '#cfd8dc', color: viewMode === 'produtor' ? '#fff' : '#333'}}
-           onClick={() => setViewMode('produtor')}
+           onClick={() => changeViewMode('produtor')}
         >
           Visão Produtor (Detalhada)
         </button>
         <button 
            className={`print-btn ${viewMode === 'geral' ? '' : 'inactive'}`} 
            style={{background: viewMode === 'geral' ? '#4a148c' : '#cfd8dc', color: viewMode === 'geral' ? '#fff' : '#333'}}
-           onClick={() => setViewMode('geral')}
+           onClick={() => changeViewMode('geral')}
         >
           Visão Geral (Completa)
         </button>
         
         <div style={{flexGrow: 1}}></div>
         
+        <button className="print-btn" style={{background: '#25d366', color: '#fff'}} onClick={handleShareWhatsApp}>
+          🟢 WhatsApp
+        </button>
         <button className="print-btn" onClick={() => window.print()}>Imprimir PDF</button>
         <Link href="/relatorios" className="back-btn">Voltar</Link>
       </div>

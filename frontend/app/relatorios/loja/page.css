@@ -310,7 +310,16 @@
 
 @media print {
   .print-controls { display: none !important; }
-  .loja-report-wrapper { padding: 0; }
-  body { background: #fff; }
-  @page { margin: 1cm; size: landscape; }
+  .loja-report-wrapper { padding: 0 !important; }
+  body { background: #fff !important; }
+  @page { margin: 0.5cm; size: landscape; }
+  .loja-table {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    font-size: 8pt !important;
+  }
+  .loja-table th, .loja-table td {
+    padding: 4px !important;
+  }
 }

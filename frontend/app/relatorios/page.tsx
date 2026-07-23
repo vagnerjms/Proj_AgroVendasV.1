@@ -49,7 +49,7 @@ export default function RelatoriosPage() {
         <p style={{ color: '#666', fontSize: '1rem' }}>Selecione os filtros desejados para gerar o modelo visual consolidado.</p>
       </header>
 
-      <div className="panel form-section relatorios-panel" style={{ borderRadius: '12px', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid #eaeaea' }}>
+      <div className="panel form-section relatorios-panel" style={{ padding: '2.5rem', borderRadius: '12px', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid #eaeaea' }}>
         <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '1.8rem' }}>
           <div className="dates-row">
             <label style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem', fontWeight: 600, color: '#333', fontSize: '0.95rem' }}>

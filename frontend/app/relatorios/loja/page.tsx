@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { apiGet } from '../../../lib/api';
+import { apiGet, getApiUrl } from '../../../lib/api';
 import './page.css';
 import { useSearchParams } from 'next/navigation';
 
@@ -208,7 +208,6 @@ function LojaReportContent() {
     
     const dateText = (start && end) ? `de ${formatDate(start)} a ${formatDate(end)}` : '';
     const modeText = viewMode === 'cliente' ? 'Cliente' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
-    const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nPara acessar online:\n${window.location.href}`;
     const filename = `Relatorio_${modeText}_${start || ''}_${end || ''}.pdf`;
 
     try {
@@ -225,37 +224,36 @@ function LojaReportContent() {
 
       // Generate the PDF as a Blob
       const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
-      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      
+      // Upload PDF Blob to backend to serve as a public direct link
+      const formData = new FormData();
+      formData.append('file', pdfBlob, filename);
 
-      // If Web Share is supported and has file sharing capacity
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Relatório - ${modeText}`,
-          text: textMsg
-        });
-      } else {
-        // Fallback: trigger file download + open WhatsApp
-        const downloadUrl = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(downloadUrl);
+      const uploadResponse = await fetch(`${getApiUrl()}/health/upload-pdf`, {
+        method: 'POST',
+        body: formData
+      });
 
-        const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const deviceName = isMobile ? 'celular' : 'computador';
-        const folderName = isMobile ? 'Arquivos / Downloads' : 'Downloads';
-
-        // Open WhatsApp with text link instructions
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg + `\n\n(O arquivo PDF foi baixado em seu ${deviceName}. Anexe o PDF da pasta ${folderName} na conversa do WhatsApp)`)}`;
-        window.open(whatsappUrl, '_blank');
+      if (!uploadResponse.ok) {
+        throw new Error('Falha ao subir PDF para o servidor.');
       }
+
+      const uploadResult = await uploadResponse.json();
+      if (uploadResult.error) {
+        throw new Error(uploadResult.error);
+      }
+
+      // Public URL pointing to the static served PDF file
+      const pdfUrl = `${getApiUrl()}/health/pdf/${uploadResult.filename}`;
+      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nVisualizar/Baixar PDF:\n${pdfUrl}\n\nPara acessar online:\n${window.location.href}`;
+
+      // Open WhatsApp Web/App
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
+      window.open(whatsappUrl, '_blank');
     } catch (err) {
       console.error('Falha ao gerar ou compartilhar o PDF', err);
-      // Fallback simple: just open WhatsApp text link
+      // Fallback simple: just open WhatsApp text link with the online page URL
+      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nPara acessar online:\n${window.location.href}`;
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, '_blank');
     } finally {

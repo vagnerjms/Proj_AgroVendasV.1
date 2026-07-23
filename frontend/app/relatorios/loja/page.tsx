@@ -213,6 +213,9 @@ function LojaReportContent() {
     try {
       const html2pdf = await loadHtml2Pdf();
       const element = document.querySelector('.loja-report-wrapper');
+      if (element) {
+        element.classList.add('html2pdf-printing');
+      }
       
       const opt = {
         margin: [10, 10, 10, 10],
@@ -224,6 +227,10 @@ function LojaReportContent() {
 
       // Generate the PDF as a Blob
       const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
+      
+      if (element) {
+        element.classList.remove('html2pdf-printing');
+      }
       
       // Upload PDF Blob to backend to serve as a public direct link
       const formData = new FormData();
@@ -257,6 +264,10 @@ function LojaReportContent() {
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, '_blank');
     } finally {
+      const element = document.querySelector('.loja-report-wrapper');
+      if (element) {
+        element.classList.remove('html2pdf-printing');
+      }
       setSharing(false);
     }
   };

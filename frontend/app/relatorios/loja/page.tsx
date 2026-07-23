@@ -437,7 +437,7 @@ function LojaReportContent() {
         Detalhamento Geral
       </h3>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-scroll-wrapper" style={{ overflowX: 'auto' }}>
         <table className="loja-table" style={{ minWidth: uniqueProducts.length > 0 ? `${1000 + uniqueProducts.length * 150}px` : '1000px' }}>
           <thead className="header-green" style={{background: headerBgColor}}>
             <tr>

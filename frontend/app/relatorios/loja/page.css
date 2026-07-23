@@ -315,23 +315,27 @@
 
 /* Estilos aplicados temporariamente durante a geração de PDF via html2pdf.js */
 .html2pdf-printing {
-  width: 1450px !important; /* Força uma página larga ideal para conter todas as colunas sem cortes */
-  max-width: 1450px !important;
+  width: max-content !important;
+  max-width: none !important;
+  min-width: 100% !important;
   padding: 20px !important;
   box-sizing: border-box !important;
   background: #ffffff !important;
+  display: block !important;
 }
 
-.html2pdf-printing div:has(> .loja-table) {
+.html2pdf-printing .table-scroll-wrapper {
   overflow: visible !important;
   width: 100% !important;
-  max-width: 100% !important;
+  max-width: none !important;
+  display: block !important;
 }
 
 .html2pdf-printing .loja-table {
-  width: 100% !important;
+  width: max-content !important;
   min-width: 100% !important;
-  max-width: 100% !important;
+  max-width: none !important;
+  table-layout: auto !important;
   font-size: 8.5pt !important;
 }
 
@@ -344,6 +348,8 @@
 .html2pdf-printing .executive-summary {
   grid-template-columns: repeat(6, 1fr) !important;
   gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 @media print {

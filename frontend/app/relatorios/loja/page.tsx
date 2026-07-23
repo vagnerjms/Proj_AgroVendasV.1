@@ -251,8 +251,28 @@ function LojaReportContent() {
       }
 
       // Public URL pointing to the static served PDF file
-      const pdfUrl = `${getApiUrl()}/health/pdf/${uploadResult.filename}`;
-      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nVisualizar/Baixar PDF:\n${pdfUrl}\n\nPara acessar online:\n${window.location.href}`;
+      let pdfUrl = `${getApiUrl()}/health/pdf/${uploadResult.filename}`;
+      let onlineUrl = window.location.href;
+
+      // Shorten URLs using TinyURL to force WhatsApp to render them as clickable blue hyperlinks (raw IPs are ignored by WhatsApp)
+      try {
+        const [shortPdfRes, shortOnlineRes] = await Promise.all([
+          fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(pdfUrl)}`),
+          fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(onlineUrl)}`)
+        ]);
+        if (shortPdfRes.ok) {
+          const shortPdf = await shortPdfRes.text();
+          if (shortPdf && shortPdf.startsWith('http')) pdfUrl = shortPdf;
+        }
+        if (shortOnlineRes.ok) {
+          const shortOnline = await shortOnlineRes.text();
+          if (shortOnline && shortOnline.startsWith('http')) onlineUrl = shortOnline;
+        }
+      } catch (shortenErr) {
+        console.error('Erro ao encurtar links com TinyURL:', shortenErr);
+      }
+
+      const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nVisualizar/Baixar PDF:\n${pdfUrl}\n\nPara acessar online:\n${onlineUrl}`;
 
       // Open WhatsApp Web/App
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;

@@ -65,7 +65,7 @@ export class HealthController {
       return res.status(404).send('Arquivo nao encontrado.');
     }
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
 

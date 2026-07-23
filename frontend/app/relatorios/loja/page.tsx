@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation';
 function LojaReportContent() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
   const [viewMode, setViewMode] = useState<'cliente' | 'produtor' | 'geral'>(() => {
     if (typeof window !== 'undefined') {
       const mode = new URLSearchParams(window.location.search).get('viewMode');
@@ -186,13 +187,76 @@ function LojaReportContent() {
     }
   };
 
-  const handleShareWhatsApp = () => {
-    const currentUrl = window.location.href;
+  const loadHtml2Pdf = () => {
+    return new Promise<any>((resolve, reject) => {
+      if (typeof window === 'undefined') return reject('Window undefined');
+      if ((window as any).html2pdf) {
+        resolve((window as any).html2pdf);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = () => resolve((window as any).html2pdf);
+      script.onerror = (err) => reject(err);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleShareWhatsApp = async () => {
+    if (sharing) return;
+    setSharing(true);
+    
     const dateText = (start && end) ? `de ${formatDate(start)} a ${formatDate(end)}` : '';
-    const modeText = viewMode === 'cliente' ? 'Destinatário (Cliente)' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
-    const text = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nPara visualizar e salvar em PDF (Configurado para Paisagem), acesse:\n${currentUrl}`;
-    const encodedText = encodeURIComponent(text);
-    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+    const modeText = viewMode === 'cliente' ? 'Cliente' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
+    const textMsg = `Seguem os Relatórios de Venda - Visão ${modeText} ${dateText}.\n\nPara acessar online:\n${window.location.href}`;
+    const filename = `Relatorio_${modeText}_${start || ''}_${end || ''}.pdf`;
+
+    try {
+      const html2pdf = await loadHtml2Pdf();
+      const element = document.querySelector('.loja-report-wrapper');
+      
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      // Generate the PDF as a Blob
+      const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+      // If Web Share is supported and has file sharing capacity
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Relatório - ${modeText}`,
+          text: textMsg
+        });
+      } else {
+        // Fallback for Desktop: trigger file download + open WhatsApp Web
+        const downloadUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+
+        // Open WhatsApp Web with text link instructions
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg + '\n\n(O arquivo PDF foi baixado em seu computador, anexe-o na conversa do WhatsApp)')}`;
+        window.open(whatsappUrl, '_blank');
+      }
+    } catch (err) {
+      console.error('Falha ao gerar ou compartilhar o PDF', err);
+      // Fallback simple: just open WhatsApp text link
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg)}`;
+      window.open(whatsappUrl, '_blank');
+    } finally {
+      setSharing(false);
+    }
   };
 
 
@@ -226,7 +290,7 @@ function LojaReportContent() {
 
   return (
     <div className="loja-report-wrapper">
-      <div className="print-controls" style={{ gap: '1rem', marginBottom: '2rem' }}>
+      <div className="print-controls" data-html2canvas-ignore="true" style={{ gap: '1rem', marginBottom: '2rem' }}>
         <button 
            className={`print-btn ${viewMode === 'cliente' ? '' : 'inactive'}`} 
            style={{background: viewMode === 'cliente' ? '#2e7d32' : '#cfd8dc', color: viewMode === 'cliente' ? '#fff' : '#333'}}
@@ -252,7 +316,7 @@ function LojaReportContent() {
         <div style={{flexGrow: 1}}></div>
         
         <button className="print-btn" style={{background: '#25d366', color: '#fff'}} onClick={handleShareWhatsApp}>
-          🟢 WhatsApp
+          {sharing ? '⏳ Gerando...' : '🟢 WhatsApp'}
         </button>
         <button className="print-btn" onClick={() => window.print()}>Imprimir PDF</button>
         <Link href="/relatorios" className="back-btn">Voltar</Link>

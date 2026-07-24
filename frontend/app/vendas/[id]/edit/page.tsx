@@ -6,7 +6,6 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { toast } from 'react-toastify';
 import { apiGet, apiPatch, apiPost, authFetch } from '../../../../lib/api';
-import '../../../new-sale/page.css';
 
 type Option = { _id: string; name: string; city?: string; state?: string };
 

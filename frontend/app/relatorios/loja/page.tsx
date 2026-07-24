@@ -535,7 +535,10 @@ function LojaReportContent() {
             
             {/* Linha de Totais Finais */}
             <tr className="totals-row">
-              <td colSpan={viewMode === 'cliente' ? 3 : 4}>TOTAL</td>
+              <td>TOTAL</td>
+              <td></td>
+              {viewMode !== 'cliente' && <td></td>}
+              <td></td>
               
               {uniqueProducts.map((prodName) => {
                 const qty = getProductTotalQty(prodName);

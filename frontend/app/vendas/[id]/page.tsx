@@ -131,9 +131,14 @@ export default function SaleDetailPage() {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span className="status-pill">{statusLabel(order.status)}</span>
           {order.status !== 'cancelled' && (
-            <button className="link-action compact-action" style={{ borderColor: '#e53e3e', color: '#e53e3e', cursor: 'pointer' }} type="button" onClick={handleDelete}>
-              Excluir Venda
-            </button>
+            <>
+              <Link className="link-action compact-action" href={`/vendas/${order._id}/edit`} style={{ cursor: 'pointer' }}>
+                Editar Venda
+              </Link>
+              <button className="link-action compact-action" style={{ borderColor: '#e53e3e', color: '#e53e3e', cursor: 'pointer' }} type="button" onClick={handleDelete}>
+                Excluir Venda
+              </button>
+            </>
           )}
           {order.status === 'confirmed' && (
             <a 

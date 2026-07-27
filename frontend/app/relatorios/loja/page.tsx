@@ -178,6 +178,10 @@ function LojaReportContent() {
     return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   }
 
+  function formatQuantity(val: number) {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
   const changeViewMode = (mode: 'cliente' | 'produtor' | 'geral') => {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
@@ -345,7 +349,7 @@ function LojaReportContent() {
     const uniquePrices = Array.from(new Set(prices)).join(' / ');
     const unit = getProductUnit(productName);
 
-    return `${totalQty} ${unit} (${uniquePrices})`;
+    return `${formatQuantity(totalQty)} ${unit} (${uniquePrices})`;
   };
 
   const getProductTotalQty = (productName: string) => {
@@ -545,7 +549,7 @@ function LojaReportContent() {
                 const unit = getProductUnit(prodName);
                 return (
                   <td key={prodName} style={{fontWeight: 'bold'}}>
-                    {qty > 0 ? `${qty} ${unit}` : '-'}
+                    {qty > 0 ? `${formatQuantity(qty)} ${unit}` : '-'}
                   </td>
                 );
               })}

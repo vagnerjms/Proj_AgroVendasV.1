@@ -108,10 +108,24 @@ export default function BackupPage() {
     }
   };
 
-  const handleDownloadBackup = (filename: string) => {
-    const apiUrl = getApiUrl();
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    window.open(`${apiUrl}/backup/download/${filename}?token=${token}`, '_blank');
+  const handleDownloadBackup = async (filename: string) => {
+    try {
+      const response = await authFetch(`/backup/download/${filename}`);
+      if (!response.ok) {
+        throw new Error('Erro ao baixar arquivo do servidor.');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err: any) {
+      toast.error('Erro ao baixar arquivo de backup.');
+    }
   };
 
   const formatSize = (bytes: number) => {

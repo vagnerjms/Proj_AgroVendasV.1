@@ -10,6 +10,7 @@ function LojaReportContent() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
+  const [savingPdf, setSavingPdf] = useState(false);
   const [viewMode, setViewMode] = useState<'cliente' | 'produtor' | 'geral'>(() => {
     if (typeof window !== 'undefined') {
       const mode = new URLSearchParams(window.location.search).get('viewMode');
@@ -318,6 +319,70 @@ function LojaReportContent() {
     }
   };
 
+  const handleSavePDF = async () => {
+    if (savingPdf) return;
+    setSavingPdf(true);
+    
+    const dateText = (start && end) ? `de ${formatDate(start)} a ${formatDate(end)}` : '';
+    const modeText = viewMode === 'cliente' ? 'Cliente' : (viewMode === 'produtor' ? 'Produtor' : 'Geral');
+    const filename = `Relatorio_${modeText}_${start || ''}_${end || ''}.pdf`;
+
+    // Save original styles to restore later
+    const originalBodyWidth = document.body.style.width;
+    const originalHtmlWidth = document.documentElement.style.width;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const element = document.querySelector('.loja-report-wrapper');
+
+    try {
+      const html2pdf = await loadHtml2Pdf();
+      if (!element) {
+        throw new Error('Elemento do relatório não encontrado.');
+      }
+
+      // Temporarily change document width to desktop mode (1550px) to force desktop media queries & layouts
+      document.documentElement.style.width = '1550px';
+      document.body.style.width = '1550px';
+      document.documentElement.style.overflow = 'visible';
+      document.body.style.overflow = 'visible';
+
+      // Add print formatting class
+      element.classList.add('html2pdf-printing');
+      
+      // Wait 150ms to allow the browser's rendering engine to process style changes and fully reflow the page to 1550px desktop mode
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      
+      // Get the real element dimensions dynamically to define custom page size in points, removing any blank white spaces
+      const rect = element.getBoundingClientRect();
+      const elementWidth = rect.width || 1200;
+      const elementHeight = rect.height || 1000;
+      
+      const opt = {
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 1.5, useCORS: true, logging: false, windowWidth: 1600 },
+        jsPDF: { unit: 'pt', format: [elementWidth, elementHeight + 40], orientation: 'landscape' }
+      };
+
+      // Generate and save the PDF
+      await html2pdf().from(element).set(opt).save();
+    } catch (err) {
+      console.error('Falha ao gerar ou salvar o PDF', err);
+      alert('Não foi possível gerar o PDF.');
+    } finally {
+      // Ensure restoration under all conditions
+      document.documentElement.style.width = originalHtmlWidth;
+      document.body.style.width = originalBodyWidth;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      if (element) {
+        element.classList.remove('html2pdf-printing');
+      }
+      setSavingPdf(false);
+    }
+  };
+
 
   const getProductUnit = (productName: string) => {
     if (productName.toLowerCase().includes('cenoura')) {
@@ -391,7 +456,9 @@ function LojaReportContent() {
         <button className="print-btn" style={{background: '#25d366', color: '#fff'}} onClick={handleShareWhatsApp}>
           {sharing ? '⏳ Gerando...' : '🟢 WhatsApp'}
         </button>
-        <button className="print-btn" onClick={() => window.print()}>Imprimir PDF</button>
+        <button className="print-btn" onClick={handleSavePDF} disabled={savingPdf}>
+          {savingPdf ? '⏳ Gerando...' : 'Salvar PDF'}
+        </button>
         <Link href="/relatorios" className="back-btn">Voltar</Link>
       </div>
 

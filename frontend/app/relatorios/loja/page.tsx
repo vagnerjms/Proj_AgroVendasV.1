@@ -502,7 +502,7 @@ function LojaReportContent() {
 
       <div className="loja-title">
         <h2 style={{color: headerBgColor}}>
-          Relatório Final - {viewMode === 'cliente' ? 'Loja por Loja' : (viewMode === 'produtor' ? 'Visão do Produtor' : 'Visão Geral (Interna)')}
+          Relatório Final - {viewMode === 'geral' ? 'Visão Geral (Interna)' : 'Loja por Loja'}
         </h2>
         <p>
           {viewMode === 'cliente' 

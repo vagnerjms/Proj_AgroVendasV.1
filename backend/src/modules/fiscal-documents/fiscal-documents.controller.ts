@@ -107,4 +107,10 @@ export class FiscalDocumentsController {
     const file = await this.fiscalDocumentsService.getFilePath(id, fileId);
     return response.download(file.storagePath, file.originalName);
   }
+
+  @Delete(':id/files/:fileId')
+  @Roles('accountant')
+  removeFile(@Param('id') id: string, @Param('fileId') fileId: string) {
+    return this.fiscalDocumentsService.removeFile(id, fileId);
+  }
 }

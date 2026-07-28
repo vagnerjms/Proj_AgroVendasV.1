@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { existsSync, mkdirSync, renameSync } from 'fs';
+import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
 import { basename, extname, join } from 'path';
 import { FilterQuery, Model, Types } from 'mongoose';
 import { PurchaseOrder } from '../purchase-orders/schemas/purchase-order.schema';
@@ -261,6 +261,39 @@ export class FiscalDocumentsService {
       throw new NotFoundException('Arquivo fiscal nao encontrado.');
     }
     return file;
+  }
+
+  async removeFile(id: string, fileId: string) {
+    const fiscalDocument = await this.fiscalDocumentModel.findOne({ _id: id, isDeleted: false });
+    if (!fiscalDocument) {
+      throw new NotFoundException('Documento fiscal nao encontrado.');
+    }
+
+    const fileIndex = fiscalDocument.files.findIndex((entry) => {
+      const entryWithId = entry as any;
+      return entryWithId._id?.toString() === fileId;
+    });
+
+    if (fileIndex === -1) {
+      throw new NotFoundException('Arquivo fiscal nao encontrado no documento.');
+    }
+
+    const file = fiscalDocument.files[fileIndex];
+    
+    // Deletar o arquivo do disco
+    if (file.storagePath && existsSync(file.storagePath)) {
+      try {
+        unlinkSync(file.storagePath);
+      } catch (err) {
+        // Ignorar se não conseguir deletar o físico
+      }
+    }
+
+    // Remover da lista e salvar
+    fiscalDocument.files.splice(fileIndex, 1);
+    await fiscalDocument.save();
+
+    return { success: true };
   }
 
   private async buildQuery(filters: FiscalFilters) {

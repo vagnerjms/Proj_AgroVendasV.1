@@ -325,6 +325,33 @@ export default function FiscalPage() {
     }
   }
 
+  async function deleteFile(docId: string, fileId: string) {
+    if (!confirm('Deseja realmente excluir este arquivo anexado?')) {
+      return;
+    }
+    try {
+      const response = await authFetch(`/fiscal-documents/${docId}/files/${fileId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao excluir arquivo do servidor.');
+      }
+      toast.success('Arquivo excluído com sucesso.');
+      
+      setSelectedDocument((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          files: prev.files?.filter(f => f._id !== fileId),
+        };
+      });
+
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir o arquivo.');
+    }
+  }
+
   return (
     <main className="shell">
       <section className="header compact">
@@ -691,13 +718,21 @@ export default function FiscalPage() {
                 <h4>Arquivos Anexados</h4>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0.5rem 0 0 0' }}>
                   {selectedDocument.files.map(f => (
-                    <li key={f._id} style={{ marginBottom: '0.5rem' }}>
+                    <li key={f._id} style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <button
                         type="button"
                         onClick={() => downloadFile(selectedDocument._id, f._id, f.originalName)}
-                        style={{ background: 'none', border: 'none', padding: 0, color: '#0066cc', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit' }}
+                        style={{ background: 'none', border: 'none', padding: 0, color: '#0066cc', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', textAlign: 'left' }}
                       >
                         📄 {f.originalName}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteFile(selectedDocument._id, f._id)}
+                        style={{ background: 'none', border: 'none', padding: '2px 8px', color: '#dc3545', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+                        title="Excluir arquivo"
+                      >
+                        ❌
                       </button>
                     </li>
                   ))}

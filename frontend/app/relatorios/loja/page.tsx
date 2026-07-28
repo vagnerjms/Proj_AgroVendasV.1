@@ -110,32 +110,23 @@ function LojaReportContent() {
   };
 
   const getNetAmount = (s: any) => {
-    // Na visão do produtor e do cliente, o líquido deve ser o bruto descontado do FUNRURAL
-    if (viewMode === 'produtor' || viewMode === 'cliente') {
-      return (s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0);
-    }
-    return s.totalReceivableAmount ?? 0;
+    // O líquido a receber deve ser sempre o bruto descontado do FUNRURAL
+    return (s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0);
   };
 
   const getRecebidoAmount = (s: any) => {
-    // Na visão do produtor e do cliente, o recebido deve refletir a proporção do valor bruto recebido
-    if (viewMode === 'produtor' || viewMode === 'cliente') {
-      const totalAmt = s.totalParticularAmount || 0;
-      if (totalAmt > 0) {
-        const ratio = (s.recebido || 0) / totalAmt;
-        return ((s.totalParticularAmount || 0) - (s.funruralRetentionAmount || 0)) * ratio;
-      }
-      return 0;
+    // O recebido deve refletir a proporção do valor bruto recebido
+    const totalAmt = s.totalParticularAmount || 0;
+    if (totalAmt > 0) {
+      const ratio = (s.recebido || 0) / totalAmt;
+      return ((s.totalParticularAmount || 0) - (s.funruralRetentionAmount || 0)) * ratio;
     }
-    return s.recebido ?? 0;
+    return 0;
   };
 
   const getSaldoAmount = (s: any) => {
-    // Na visão do produtor e do cliente, o saldo deve refletir o valor líquido restante (líquido - recebido)
-    if (viewMode === 'produtor' || viewMode === 'cliente') {
-      return getNetAmount(s) - getRecebidoAmount(s);
-    }
-    return s.saldo ?? 0;
+    // O saldo deve refletir o valor líquido restante (líquido - recebido)
+    return getNetAmount(s) - getRecebidoAmount(s);
   };
 
   const getFunruralAmount = (s: any) => {

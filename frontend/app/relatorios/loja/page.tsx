@@ -669,7 +669,7 @@ function LojaReportContent() {
                     
                     {uniqueProducts.map((prodName) => {
                       const qty = group.items.reduce((sum, s) => {
-                        const matchedItems = (s.items || []).filter((item: any) => item.productId?.name === productName);
+                        const matchedItems = (s.items || []).filter((item: any) => item.productId?.name === prodName);
                         return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityBags || 0), 0);
                       }, 0);
                       const unit = getProductUnit(prodName);

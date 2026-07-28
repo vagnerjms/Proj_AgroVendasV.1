@@ -131,14 +131,9 @@ function LojaReportContent() {
   };
 
   const getSaldoAmount = (s: any) => {
-    // Na visão do produtor e do cliente, o saldo deve refletir a proporção do saldo restante
+    // Na visão do produtor e do cliente, o saldo deve refletir o valor líquido restante (líquido - recebido)
     if (viewMode === 'produtor' || viewMode === 'cliente') {
-      const totalAmt = s.totalParticularAmount || 0;
-      if (totalAmt > 0) {
-        const ratio = (s.saldo || 0) / totalAmt;
-        return ((s.totalParticularAmount || 0) - (s.funruralRetentionAmount || 0)) * ratio;
-      }
-      return 0;
+      return getNetAmount(s) - getRecebidoAmount(s);
     }
     return s.saldo ?? 0;
   };

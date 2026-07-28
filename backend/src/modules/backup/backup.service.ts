@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import * as fs from 'fs';
 import { Connection } from 'mongoose';
@@ -57,12 +57,15 @@ export class BackupService {
       zip.addFile('database.json', Buffer.from(jsonContent, 'utf-8'));
 
       // Adiciona a pasta de arquivos anexados (uploads) recursivamente se ela existir e contiver arquivos
-      if (fs.existsSync(this.uploadDir) && fs.readdirSync(this.uploadDir).length > 0) {
-        try {
-          zip.addLocalFolder(this.uploadDir, 'uploads');
-        } catch (folderErr: any) {
-          this.logger.warn(`Erro ao adicionar pasta uploads ao ZIP: ${folderErr.message}`);
+      try {
+        if (fs.existsSync(this.uploadDir) && fs.statSync(this.uploadDir).isDirectory()) {
+          const files = fs.readdirSync(this.uploadDir);
+          if (files.length > 0) {
+            zip.addLocalFolder(this.uploadDir, 'uploads');
+          }
         }
+      } catch (folderErr: any) {
+        this.logger.warn(`Erro ao verificar ou adicionar pasta uploads ao ZIP: ${folderErr.message}`);
       }
 
       // Salva o arquivo compactado em disco
@@ -80,7 +83,7 @@ export class BackupService {
       };
     } catch (err: any) {
       this.logger.error(`Erro ao gerar backup completo: ${err.message}`, err.stack);
-      throw err;
+      throw new InternalServerErrorException(`Erro ao gerar backup: ${err.message}`);
     }
   }
 

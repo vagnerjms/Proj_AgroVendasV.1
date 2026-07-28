@@ -697,6 +697,11 @@ function LojaReportContent() {
               );
             })}
             
+            {/* Linha de Espaçamento antes do Total Geral */}
+            <tr style={{ height: '25px', border: 'none', background: 'transparent' }}>
+              <td colSpan={100} style={{ border: 'none', background: 'transparent', padding: 0, height: '25px' }}></td>
+            </tr>
+
             {/* Linha de Totais Finais */}
             <tr className="totals-row">
               <td>TOTAL</td>

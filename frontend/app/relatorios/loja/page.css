@@ -124,6 +124,8 @@
 .totals-row td {
   font-weight: bold;
   background-color: #f5f5f5;
+  border-top: 2px solid #475569 !important;
+  border-bottom: 2px solid #475569 !important;
 }
 
 .destinatario-header {

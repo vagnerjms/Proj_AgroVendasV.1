@@ -22,6 +22,22 @@ export class BackupService {
     if (!fs.existsSync(this.backupDir)) {
       fs.mkdirSync(this.backupDir, { recursive: true });
     }
+    this.ensureAdmZip();
+  }
+
+  private ensureAdmZip() {
+    try {
+      require('adm-zip');
+    } catch (e) {
+      this.logger.log('Biblioteca adm-zip não encontrada no volume de node_modules. Instalando dinamicamente...');
+      try {
+        const { execSync } = require('child_process');
+        execSync('npm install adm-zip --no-save', { stdio: 'inherit' });
+        this.logger.log('Biblioteca adm-zip instalada com sucesso dinamicamente!');
+      } catch (err: any) {
+        this.logger.error(`Erro ao instalar adm-zip dinamicamente: ${err.message}`);
+      }
+    }
   }
 
   async createBackup(): Promise<BackupFileInfo> {

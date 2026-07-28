@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState, Fragment } from 'react';
 import Link from 'next/link';
 import { apiGet, getApiUrl } from '../../../lib/api';
 import './page.css';
@@ -424,6 +424,42 @@ function LojaReportContent() {
     }, 0);
   };
 
+  const groupedData = useMemo(() => {
+    const groups: { key: string; items: any[] }[] = [];
+    
+    const getGroupKey = (item: any) => {
+      if (viewMode === 'produtor') {
+        return item.producerName || 'Sem Produtor';
+      }
+      return item.customerName || 'Sem Destinatário';
+    };
+
+    visibleData.forEach((item) => {
+      const key = getGroupKey(item);
+      let group = groups.find(g => g.key === key);
+      if (!group) {
+        group = { key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(item);
+    });
+
+    return groups;
+  }, [visibleData, viewMode]);
+
+  const getColSpan = () => {
+    let base = 3; // Part, Data, Destinatário
+    if (viewMode !== 'cliente') base += 1; // Produtor
+    base += uniqueProducts.length;
+    let end = 7; // Bruto, Líq. Receber, Venc. Receber, FUNRURAL, NFe, Recebido, Status
+    if (viewMode === 'geral') end += 3; // Líq. Pagar, Venc. Pagar, Lucro Líquido
+    return base + end;
+  };
+
+  const groupHeaderBgColor = viewMode === 'cliente' ? '#e8f5e9' : (viewMode === 'produtor' ? '#e3f2fd' : '#f3e5f5');
+  const groupHeaderTextColor = viewMode === 'cliente' ? '#1b5e20' : (viewMode === 'produtor' ? '#0d47a1' : '#4a148c');
+  const subtotalBgColor = viewMode === 'cliente' ? '#f1f8e9' : (viewMode === 'produtor' ? '#eef6fc' : '#f8f0fc');
+
   const headerBgColor = viewMode === 'cliente' ? '#2e7d32' : (viewMode === 'produtor' ? '#0d47a1' : '#4a148c');
 
   return (
@@ -574,34 +610,91 @@ function LojaReportContent() {
             </tr>
           </thead>
           <tbody>
-            {visibleData.map(s => {
+            {groupedData.map((group) => {
+              const groupGross = group.items.reduce((acc, s) => acc + getGrossAmount(s), 0);
+              const groupNet = group.items.reduce((acc, s) => acc + getNetAmount(s), 0);
+              const groupPagar = group.items.reduce((acc, s) => acc + getProducerNetAmount(s), 0);
+              const groupFunrural = group.items.reduce((acc, s) => acc + getFunruralAmount(s), 0);
+              const groupNFe = group.items.reduce((acc, s) => acc + (s.nfeValue || 0), 0);
+              const groupLucro = group.items.reduce((acc, s) => acc + getLucro(s), 0);
+              const groupRecebido = group.items.reduce((acc, s) => acc + getRecebidoAmount(s), 0);
+
               return (
-                <tr key={s._id}>
-                  <td>{s.orderNumber}</td>
-                  <td style={{whiteSpace: 'nowrap'}}>{formatDate(s.date)}</td>
-                  {viewMode !== 'cliente' && <td style={{textAlign: 'left'}}>{s.producerName}</td>}
-                  <td style={{textAlign: 'left'}}>{s.customerName}</td>
-                  
-                  {uniqueProducts.map((prodName) => (
-                    <td key={prodName} style={{whiteSpace: 'nowrap'}}>
-                      {getProductCellData(s, prodName)}
+                <Fragment key={group.key}>
+                  {/* Linha de separação e cabeçalho da loja */}
+                  <tr className="group-header-row" style={{ background: groupHeaderBgColor, borderBottom: '2px solid #cbd5e1' }}>
+                    <td 
+                      colSpan={getColSpan()} 
+                      style={{ fontWeight: 'bold', color: groupHeaderTextColor, padding: '12px', fontSize: '15px', textAlign: 'left' }}
+                    >
+                      🏢 {group.key}
                     </td>
+                  </tr>
+
+                  {/* Registros da loja */}
+                  {group.items.map(s => (
+                    <tr key={s._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td>{s.orderNumber}</td>
+                      <td style={{whiteSpace: 'nowrap'}}>{formatDate(s.date)}</td>
+                      {viewMode !== 'cliente' && <td style={{textAlign: 'left'}}>{s.producerName}</td>}
+                      <td style={{textAlign: 'left'}}>{s.customerName}</td>
+                      
+                      {uniqueProducts.map((prodName) => (
+                        <td key={prodName} style={{whiteSpace: 'nowrap'}}>
+                          {getProductCellData(s, prodName)}
+                        </td>
+                      ))}
+                      
+                      <td>{money(getGrossAmount(s))}</td>
+                      <td>{money(getNetAmount(s))}</td>
+                      <td>{formatDate(s.dueDate)}</td>
+                      {viewMode === 'geral' && <td>{money(getProducerNetAmount(s))}</td>}
+                      {viewMode === 'geral' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
+                      <td>{money(getFunruralAmount(s))}</td>
+                      <td>{money(s.nfeValue)}</td>
+     
+                      {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
+     
+                      <td>{money(getRecebidoAmount(s))}</td>
+                      <td>{getSaldoAmount(s) > 0 ? 'Em aberto' : 'Pago'}</td>
+                    </tr>
                   ))}
-                  
-                  <td>{money(getGrossAmount(s))}</td>
-                  <td>{money(getNetAmount(s))}</td>
-                  <td>{formatDate(s.dueDate)}</td>
-                  {viewMode === 'geral' && <td>{money(getProducerNetAmount(s))}</td>}
-                  {viewMode === 'geral' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
-                  <td>{money(getFunruralAmount(s))}</td>
-                  <td>{money(s.nfeValue)}</td>
- 
-                  {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
- 
-                  <td>{money(getRecebidoAmount(s))}</td>
-                  <td>{getSaldoAmount(s) > 0 ? 'Em aberto' : 'Pago'}</td>
-                </tr>
-              )
+
+                  {/* Linha de Subtotal da loja */}
+                  <tr className="subtotal-row" style={{ background: subtotalBgColor, fontWeight: 'bold', borderBottom: '2px solid #cbd5e1' }}>
+                    <td>SUBTOTAL</td>
+                    <td></td>
+                    {viewMode !== 'cliente' && <td></td>}
+                    <td style={{ textAlign: 'left' }}>{group.key}</td>
+                    
+                    {uniqueProducts.map((prodName) => {
+                      const qty = group.items.reduce((sum, s) => {
+                        const matchedItems = (s.items || []).filter((item: any) => item.productId?.name === productName);
+                        return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityBags || 0), 0);
+                      }, 0);
+                      const unit = getProductUnit(prodName);
+                      return (
+                        <td key={prodName} style={{fontWeight: 'bold'}}>
+                          {qty > 0 ? `${formatQuantity(qty)} ${unit}` : '-'}
+                        </td>
+                      );
+                    })}
+                    
+                    <td>{money(groupGross)}</td>
+                    <td>{money(groupNet)}</td>
+                    <td></td>
+                    {viewMode === 'geral' && <td>{money(groupPagar)}</td>}
+                    {viewMode === 'geral' && <td></td>}
+                    <td>{money(groupFunrural)}</td>
+                    <td>{money(groupNFe)}</td>
+       
+                    {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: groupLucro < 0 ? 'red' : 'green'}}>{money(groupLucro)}</td>}
+       
+                    <td>{money(groupRecebido)}</td>
+                    <td></td>
+                  </tr>
+                </Fragment>
+              );
             })}
             
             {/* Linha de Totais Finais */}

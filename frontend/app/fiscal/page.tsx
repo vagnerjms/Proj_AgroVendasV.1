@@ -535,54 +535,99 @@ export default function FiscalPage() {
                           const page = await doc.getPage(1);
                           const content = await page.getTextContent();
                           const text = content.items.map((i: any) => i.str).join(' ');
-                          
-                          // A Chave de Acesso no PDF costuma ter espaços (ex: 1234 5678...). 
-                          // Buscamos 44 dígitos que podem estar separados por até 3 espaços.
-                          const possibleKeys = text.match(/(?:\d[\s]{0,3}){44}/g);
-                          let chNFe = undefined;
-                          if (possibleKeys) {
-                            for (const pk of possibleKeys) {
-                              const clean = pk.replace(/\D/g, '');
-                              if (clean.length === 44) {
-                                chNFe = clean;
-                                break;
-                              }
-                            }
-                          }
-                          
-                          const numberMatch = text.match(/(?:Nº|N.|NF-e|Número)\s*(\d{1,9})/i);
-                          const amountMatches = Array.from(text.matchAll(/(?:VALOR TOTAL|V\. TOTAL|TOTAL DA NOTA|TOTAL DOS PRODUTOS)[\s\S]{0,30}?([\d]{1,3}(?:\.[\d]{3})*,\d{2})/gi));
-                          let amount = undefined;
-                          if (amountMatches.length > 0) {
-                            const values = amountMatches.map((m: any) => parseFloat(m[1].replace(/\./g, '').replace(',', '.')));
-                            amount = Math.max(...values);
-                          } else {
-                            const fallback = text.match(/(?:R\$|VALOR)[\s:]*([\d]{1,3}(?:\.[\d]{3})*,\d{2})/i);
-                            if (fallback) {
-                              amount = parseFloat(fallback[1].replace(/\./g, '').replace(',', '.'));
-                            }
-                          }
 
-                          // Tentativa de pegar Destinatário (Procurando a tag exata do DANFE)
-                          const destMatch = text.match(/(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL|DESTINAT[ÁA]RIO.*?NOME.*?)\s+([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)\s+(?:CNPJ|CPF|DATA|ENDEREÇO|BAIRRO|INSCRIÇÃO)/i);
-                          let destName = destMatch ? destMatch[1].trim() : undefined;
-                          if (destName && destName.length < 3) destName = undefined;
+                           // A Chave de Acesso no PDF costuma ter espaços (ex: 1234 5678...). 
+                           // Buscamos 44 dígitos que podem estar separados por até 3 espaços.
+                           const possibleKeys = text.match(/(?:\d[\s]{0,3}){44}/g);
+                           let chNFe = undefined;
+                           if (possibleKeys) {
+                             for (const pk of possibleKeys) {
+                               const clean = pk.replace(/\D/g, '');
+                               if (clean.length === 44) {
+                                 chNFe = clean;
+                                 break;
+                               }
+                             }
+                           }
+                           
+                           // Número da NF
+                           let nNF = undefined;
+                           const numberSpecificMatch = text.match(/(?:Nº|N\.|NF-e|Número)\s*(\d{1,9})\s*(?:SÉRIE|SERIE)/i);
+                           if (numberSpecificMatch) {
+                             nNF = numberSpecificMatch[1];
+                           } else {
+                             const numberMatch = text.match(/(?:Nº|N\.|NF-e|Número)\s*(\d{1,9})/i);
+                             if (numberMatch) nNF = numberMatch[1];
+                           }
 
-                          // Tentativa de pegar Emitente (Geralmente é a primeira coisa do PDF)
-                          const emitMatch = text.match(/^\s*([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{5,100}?)\s+(?:DANFE|DOCUMENTO AUXILIAR|CNPJ|RUA|AV|AVENIDA|RODOVIA)/i);
-                          let emitName = emitMatch ? emitMatch[1].trim() : undefined;
-                          if (emitName && emitName.length < 3) emitName = undefined;
+                           // Série da NF
+                           let serie = undefined;
+                           const seriesSpecificMatch = text.match(/SÉRIE\s+(\d+)/i) || text.match(/PROTOCOLO DE AUTORIZAÇÃO DE USO\s+\d+\s+(\d{1,4})/i);
+                           if (seriesSpecificMatch) {
+                             serie = seriesSpecificMatch[1];
+                           }
 
-                          const nNF = numberMatch ? numberMatch[1] : undefined;
+                           // Data de Emissão
+                           let issuedAtDate = undefined;
+                           const dateMatch = text.match(/(?:DATA\s+(?:DE\s+)?EMISS[ÃA]O)\s*(\d{2}\/\d{2}\/\d{2,4})/i);
+                           if (dateMatch) {
+                             const parts = dateMatch[1].split('/');
+                             if (parts.length === 3) {
+                               const day = parts[0].padStart(2, '0');
+                               const month = parts[1].padStart(2, '0');
+                               let year = parts[2].trim();
+                               if (year.length === 2) {
+                                 year = `20${year}`;
+                               }
+                               issuedAtDate = `${year}-${month}-${day}`;
+                             }
+                           }
 
-                          setForm((prev) => ({
-                            ...prev,
-                            ...(chNFe && { accessKey: chNFe }),
-                            ...(nNF && { number: nNF }),
-                            ...(amount !== undefined && !isNaN(amount) && { amount: amount }),
-                            ...(emitName && { issuer: emitName }),
-                            ...(destName && { recipient: destName })
-                          }));
+                           // Emitente (Remetente)
+                           let emitName = undefined;
+                           const emitSpecificMatch = text.match(/(?:REMETENTE|EMITENTE)\s+(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL)\s+(?:CNPJ\s*[\/\-]?\s*CPF)?\s*([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)(?:\s+\d{2,3}[\d.\-\/]+|\s+CNPJ|\s+CPF|\s+ENDEREÇO)/i);
+                           if (emitSpecificMatch) {
+                             emitName = emitSpecificMatch[1].trim();
+                           } else {
+                             const emitMatch = text.match(/^\s*([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{5,100}?)\s+(?:DANFE|DOCUMENTO AUXILIAR|CNPJ|RUA|AV|AVENIDA|RODOVIA)/i);
+                             if (emitMatch) emitName = emitMatch[1].trim();
+                           }
+                           if (emitName && emitName.length < 3) emitName = undefined;
+
+                           // Destinatário
+                           let destName = undefined;
+                           const destSpecificMatch = text.match(/(?:DESTINAT[ÁA]RIO)\s+(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL)\s+([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)\s+(?:RODOVIA|RUA|AV|AVENIDA|CNPJ|CPF|ENDEREÇO)/i);
+                           if (destSpecificMatch) {
+                             destName = destSpecificMatch[1].trim();
+                           } else {
+                             const destMatch = text.match(/(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL|DESTINAT[ÁA]RIO.*?NOME.*?)\s+([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)\s+(?:CNPJ|CPF|DATA|ENDEREÇO|BAIRRO|INSCRIÇÃO)/i);
+                             if (destMatch) destName = destMatch[1].trim();
+                           }
+                           if (destName && destName.length < 3) destName = undefined;
+
+                           // Valor Total
+                           let amount = undefined;
+                           const amountMatches = Array.from(text.matchAll(/(?:VALOR TOTAL|V\. TOTAL|TOTAL DA NOTA|TOTAL DOS PRODUTOS)[\s\S]{0,150}?([\d]{1,3}(?:\.[\d]{3})*,\d{2})/gi));
+                           if (amountMatches.length > 0) {
+                             const values = amountMatches.map((m: any) => parseFloat(m[1].replace(/\./g, '').replace(',', '.')));
+                             amount = Math.max(...values);
+                           } else {
+                             const fallback = text.match(/(?:R\$|VALOR)[\s:]*([\d]{1,3}(?:\.[\d]{3})*,\d{2})/i);
+                             if (fallback) {
+                               amount = parseFloat(fallback[1].replace(/\./g, '').replace(',', '.'));
+                             }
+                           }
+
+                           setForm((prev) => ({
+                             ...prev,
+                             ...(chNFe && { accessKey: chNFe }),
+                             ...(nNF && { number: nNF }),
+                             ...(serie && { series: serie }),
+                             ...(issuedAtDate && { issuedAt: issuedAtDate }),
+                             ...(amount !== undefined && !isNaN(amount) && { amount: amount }),
+                             ...(emitName && { issuer: emitName }),
+                             ...(destName && { recipient: destName })
+                           }));
                           toast.success('PDF analisado via nuvem! Por favor, confira os dados extraídos. ✨');
                         } catch (err) {
                           console.error(err);

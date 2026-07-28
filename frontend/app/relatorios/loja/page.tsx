@@ -81,6 +81,29 @@ function LojaReportContent() {
     return Array.from(productsSet).sort();
   }, [visibleData]);
 
+  const groupedData = useMemo(() => {
+    const groups: { key: string; items: any[] }[] = [];
+    
+    const getGroupKey = (item: any) => {
+      if (viewMode === 'produtor') {
+        return item.producerName || 'Sem Produtor';
+      }
+      return item.customerName || 'Sem Destinatário';
+    };
+
+    visibleData.forEach((item) => {
+      const key = getGroupKey(item);
+      let group = groups.find(g => g.key === key);
+      if (!group) {
+        group = { key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(item);
+    });
+
+    return groups;
+  }, [visibleData, viewMode]);
+
   if (loading) {
     return <div style={{padding: '2rem'}}>Carregando relatório...</div>;
   }
@@ -423,29 +446,6 @@ function LojaReportContent() {
       return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityBags || 0), 0);
     }, 0);
   };
-
-  const groupedData = useMemo(() => {
-    const groups: { key: string; items: any[] }[] = [];
-    
-    const getGroupKey = (item: any) => {
-      if (viewMode === 'produtor') {
-        return item.producerName || 'Sem Produtor';
-      }
-      return item.customerName || 'Sem Destinatário';
-    };
-
-    visibleData.forEach((item) => {
-      const key = getGroupKey(item);
-      let group = groups.find(g => g.key === key);
-      if (!group) {
-        group = { key, items: [] };
-        groups.push(group);
-      }
-      group.items.push(item);
-    });
-
-    return groups;
-  }, [visibleData, viewMode]);
 
   const getColSpan = () => {
     let base = 3; // Part, Data, Destinatário

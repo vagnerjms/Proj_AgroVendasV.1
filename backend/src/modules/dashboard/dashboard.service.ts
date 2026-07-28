@@ -176,11 +176,11 @@ export class DashboardService {
       const saleDocs = fiscalDocs.filter(f => f.salesOrderId?.toString() === sale._id.toString());
       
       const recebido = salePayments.filter(p => p.type === 'receivable').reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-      const aReceber = sale.totalReceivableAmount || 0;
+      const aReceber = sale.totalReceivableAmount || (sale.totalParticularAmount - (sale.funruralRetentionAmount || 0)) || 0;
       const saldo = Math.max(0, this.roundMoney(aReceber - recebido));
       
       const pagoProdutor = salePayments.filter(p => p.type === 'payable').reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-      const aPagarProdutor = sale.producerNetAmount || 0;
+      const aPagarProdutor = sale.producerNetAmount || (sale.saleType === 'particular' ? aReceber : (sale.totalCostAmount || 0));
       const saldoProdutor = Math.max(0, this.roundMoney(aPagarProdutor - pagoProdutor));
 
       const nfeValue = saleDocs.reduce((sum, f) => sum + (f.amount || 0), 0);

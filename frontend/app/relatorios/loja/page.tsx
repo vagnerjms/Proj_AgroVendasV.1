@@ -46,10 +46,10 @@ function LojaReportContent() {
         }
       }
       
-      // Sort data by Date as default, or by Customer
+      // Sort data by Customer name (Loja) so that groups are sorted correctly
       fetched.sort((a: any, b: any) => {
-        const nameA = String(viewMode === 'cliente' ? (a.customerName || '') : (a.producerName || ''));
-        const nameB = String(viewMode === 'cliente' ? (b.customerName || '') : (b.producerName || ''));
+        const nameA = String(a.customerName || '');
+        const nameB = String(b.customerName || '');
         return nameA.localeCompare(nameB);
       });
       setData(fetched);
@@ -85,9 +85,6 @@ function LojaReportContent() {
     const groups: { key: string; items: any[] }[] = [];
     
     const getGroupKey = (item: any) => {
-      if (viewMode === 'produtor') {
-        return item.producerName || 'Sem Produtor';
-      }
       return item.customerName || 'Sem Destinatário';
     };
 

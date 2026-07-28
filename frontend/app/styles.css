@@ -550,16 +550,16 @@ dd {
 .fiscal-table-head,
 .fiscal-table-row {
   grid-template-columns:
-    50px
-    minmax(110px, 1.2fr)
-    minmax(110px, 1.2fr)
-    85px
-    90px
-    90px
-    90px
-    90px
+    55px
+    minmax(130px, 1.2fr)
+    minmax(130px, 1.2fr)
+    95px
+    115px
+    100px
+    115px
+    100px
     110px;
-  min-width: 825px;
+  min-width: 950px;
 }
 
 .receivables-table-head,

@@ -25,54 +25,63 @@ export class BackupService {
   }
 
   async createBackup(): Promise<BackupFileInfo> {
-    const collections = await this.connection.db?.listCollections().toArray() || [];
-    const backupData: Record<string, any[]> = {};
-    let totalRecords = 0;
+    try {
+      const collections = await this.connection.db?.listCollections().toArray() || [];
+      const backupData: Record<string, any[]> = {};
+      let totalRecords = 0;
 
-    for (const col of collections) {
-      if (col.name.startsWith('system.')) continue;
-      const docs = await this.connection.db?.collection(col.name).find({}).toArray() || [];
-      backupData[col.name] = docs;
-      totalRecords += docs.length;
+      for (const col of collections) {
+        if (col.name.startsWith('system.')) continue;
+        const docs = await this.connection.db?.collection(col.name).find({}).toArray() || [];
+        backupData[col.name] = docs;
+        totalRecords += docs.length;
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const zipFilename = `agrovenda_backup_${timestamp}.zip`;
+      const zipFilePath = path.join(this.backupDir, zipFilename);
+
+      const jsonContent = JSON.stringify({
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        database: this.connection.name,
+        collectionsCount: Object.keys(backupData).length,
+        totalRecords,
+        data: backupData,
+      }, null, 2);
+
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip();
+
+      // Adiciona o dump do banco de dados no zip
+      zip.addFile('database.json', Buffer.from(jsonContent, 'utf-8'));
+
+      // Adiciona a pasta de arquivos anexados (uploads) recursivamente se ela existir e contiver arquivos
+      if (fs.existsSync(this.uploadDir) && fs.readdirSync(this.uploadDir).length > 0) {
+        try {
+          zip.addLocalFolder(this.uploadDir, 'uploads');
+        } catch (folderErr: any) {
+          this.logger.warn(`Erro ao adicionar pasta uploads ao ZIP: ${folderErr.message}`);
+        }
+      }
+
+      // Salva o arquivo compactado em disco
+      zip.writeZip(zipFilePath);
+      const stats = fs.statSync(zipFilePath);
+
+      this.logger.log(`Backup completo criado com sucesso: ${zipFilename} (${totalRecords} registros e anexos)`);
+
+      return {
+        filename: zipFilename,
+        createdAt: new Date().toISOString(),
+        sizeBytes: stats.size,
+        collectionsCount: Object.keys(backupData).length,
+        totalRecords,
+      };
+    } catch (err: any) {
+      this.logger.error(`Erro ao gerar backup completo: ${err.message}`, err.stack);
+      throw err;
     }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const zipFilename = `agrovenda_backup_${timestamp}.zip`;
-    const zipFilePath = path.join(this.backupDir, zipFilename);
-
-    const jsonContent = JSON.stringify({
-      version: '1.0',
-      timestamp: new Date().toISOString(),
-      database: this.connection.name,
-      collectionsCount: Object.keys(backupData).length,
-      totalRecords,
-      data: backupData,
-    }, null, 2);
-
-    const AdmZip = require('adm-zip');
-    const zip = new AdmZip();
-
-    // Adiciona o dump do banco de dados no zip
-    zip.addFile('database.json', Buffer.from(jsonContent, 'utf-8'));
-
-    // Adiciona a pasta de arquivos anexados (uploads) recursivamente se ela existir
-    if (fs.existsSync(this.uploadDir)) {
-      zip.addLocalFolder(this.uploadDir, 'uploads');
-    }
-
-    // Salva o arquivo compactado em disco
-    zip.writeZip(zipFilePath);
-    const stats = fs.statSync(zipFilePath);
-
-    this.logger.log(`Backup completo criado com sucesso: ${zipFilename} (${totalRecords} registros e anexos)`);
-
-    return {
-      filename: zipFilename,
-      createdAt: new Date().toISOString(),
-      sizeBytes: stats.size,
-      collectionsCount: Object.keys(backupData).length,
-      totalRecords,
-    };
   }
 
   async listBackups(): Promise<BackupFileInfo[]> {

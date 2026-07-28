@@ -16,6 +16,7 @@ export interface BackupFileInfo {
 export class BackupService {
   private readonly logger = new Logger(BackupService.name);
   private readonly backupDir = path.join(process.cwd(), 'backups');
+  private readonly uploadDir = path.join(process.cwd(), 'uploads');
 
   constructor(@InjectConnection() private readonly connection: Connection) {
     if (!fs.existsSync(this.backupDir)) {
@@ -36,8 +37,8 @@ export class BackupService {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `agrovenda_backup_${timestamp}.json`;
-    const filePath = path.join(this.backupDir, filename);
+    const zipFilename = `agrovenda_backup_${timestamp}.zip`;
+    const zipFilePath = path.join(this.backupDir, zipFilename);
 
     const jsonContent = JSON.stringify({
       version: '1.0',
@@ -48,13 +49,25 @@ export class BackupService {
       data: backupData,
     }, null, 2);
 
-    fs.writeFileSync(filePath, jsonContent, 'utf-8');
-    const stats = fs.statSync(filePath);
+    const AdmZip = require('adm-zip');
+    const zip = new AdmZip();
 
-    this.logger.log(`Backup criado com sucesso: ${filename} (${totalRecords} registros)`);
+    // Adiciona o dump do banco de dados no zip
+    zip.addFile('database.json', Buffer.from(jsonContent, 'utf-8'));
+
+    // Adiciona a pasta de arquivos anexados (uploads) recursivamente se ela existir
+    if (fs.existsSync(this.uploadDir)) {
+      zip.addLocalFolder(this.uploadDir, 'uploads');
+    }
+
+    // Salva o arquivo compactado em disco
+    zip.writeZip(zipFilePath);
+    const stats = fs.statSync(zipFilePath);
+
+    this.logger.log(`Backup completo criado com sucesso: ${zipFilename} (${totalRecords} registros e anexos)`);
 
     return {
-      filename,
+      filename: zipFilename,
       createdAt: new Date().toISOString(),
       sizeBytes: stats.size,
       collectionsCount: Object.keys(backupData).length,
@@ -65,14 +78,28 @@ export class BackupService {
   async listBackups(): Promise<BackupFileInfo[]> {
     if (!fs.existsSync(this.backupDir)) return [];
 
-    const files = fs.readdirSync(this.backupDir).filter(f => f.endsWith('.json'));
+    // Lista tanto arquivos novos (.zip) quanto legados (.json)
+    const files = fs.readdirSync(this.backupDir).filter(f => f.endsWith('.zip') || f.endsWith('.json'));
     const result: BackupFileInfo[] = [];
 
     for (const file of files) {
       const filePath = path.join(this.backupDir, file);
       const stats = fs.statSync(filePath);
       try {
-        const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        let content: any;
+        if (file.endsWith('.zip')) {
+          const AdmZip = require('adm-zip');
+          const zip = new AdmZip(filePath);
+          const dbEntry = zip.getEntry('database.json');
+          if (dbEntry) {
+            content = JSON.parse(dbEntry.getData().toString('utf-8'));
+          } else {
+            throw new Error('Database entry missing in zip');
+          }
+        } else {
+          content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        }
+
         result.push({
           filename: file,
           createdAt: content.timestamp || stats.birthtime.toISOString(),
@@ -103,14 +130,46 @@ export class BackupService {
     return filePath;
   }
 
-  async restoreBackup(filename: string, fileContent?: string): Promise<{ success: boolean; restoredCollections: number; totalRestoredRecords: number }> {
+  async restoreBackup(
+    filename: string, 
+    fileContent?: string, 
+    fileBuffer?: Buffer
+  ): Promise<{ success: boolean; restoredCollections: number; totalRestoredRecords: number }> {
     let backupJson: any;
 
-    if (fileContent) {
-      backupJson = JSON.parse(fileContent);
+    if (filename.endsWith('.zip')) {
+      const AdmZip = require('adm-zip');
+      let zip: any;
+      if (fileBuffer) {
+        zip = new AdmZip(fileBuffer);
+      } else {
+        const filePath = this.getBackupFilePath(filename);
+        zip = new AdmZip(filePath);
+      }
+
+      const dbEntry = zip.getEntry('database.json');
+      if (!dbEntry) {
+        throw new Error('Arquivo database.json não encontrado no pacote ZIP.');
+      }
+      backupJson = JSON.parse(dbEntry.getData().toString('utf-8'));
+
+      // Restaurar arquivos da pasta uploads
+      const entries = zip.getEntries();
+      for (const entry of entries) {
+        if (entry.entryName.startsWith('uploads/') && !entry.isDirectory) {
+          zip.extractEntryTo(entry, process.cwd(), true, true);
+        }
+      }
     } else {
-      const filePath = this.getBackupFilePath(filename);
-      backupJson = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      // Caso de compatibilidade para restaurar arquivos .json legados
+      if (fileContent) {
+        backupJson = JSON.parse(fileContent);
+      } else if (fileBuffer) {
+        backupJson = JSON.parse(fileBuffer.toString('utf-8'));
+      } else {
+        const filePath = this.getBackupFilePath(filename);
+        backupJson = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      }
     }
 
     if (!backupJson || !backupJson.data) {

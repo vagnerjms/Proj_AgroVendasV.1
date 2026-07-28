@@ -39,7 +39,6 @@ export class BackupController {
     if (!file) {
       throw new Error('Nenhum arquivo enviado.');
     }
-    const content = file.buffer.toString('utf-8');
-    return this.backupService.restoreBackup(file.originalname, content);
+    return this.backupService.restoreBackup(file.originalname, undefined, file.buffer);
   }
 }

@@ -50,8 +50,9 @@ export default function BackupPage() {
   };
 
   const handleRestoreBackup = async (filename: string) => {
+    const isZip = filename.endsWith('.zip');
     const confirm = window.confirm(
-      `ATENÇÃO: Deseja realmente restaurar o banco de dados a partir do arquivo "${filename}"?\n\nIsso substituirá os dados atuais pelos dados do backup.`
+      `ATENÇÃO: Deseja realmente restaurar o sistema a partir do arquivo "${filename}"?\n\nIsso substituirá os dados atuais ${isZip ? 'e os arquivos anexos' : ''} pelos dados do backup.`
     );
     if (!confirm) return;
 
@@ -62,11 +63,11 @@ export default function BackupPage() {
         {}
       );
       toast.success(
-        `Restauração concluída com sucesso! ${res.restoredCollections} coleções e ${res.totalRestoredRecords} registros restaurados.`
+        `Restauração concluída com sucesso! ${res.restoredCollections} coleções, ${res.totalRestoredRecords} registros ${isZip ? 'e arquivos anexos' : ''} restaurados.`
       );
       void loadBackups();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao restaurar banco de dados.');
+      toast.error(err.message || 'Erro ao restaurar o sistema.');
     } finally {
       setRestoring(null);
     }
@@ -76,8 +77,9 @@ export default function BackupPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const isZip = file.name.endsWith('.zip');
     const confirm = window.confirm(
-      `ATENÇÃO: Deseja restaurar o banco de dados enviando o arquivo "${file.name}"?\n\nOs dados atuais serão sobrescritos.`
+      `ATENÇÃO: Deseja restaurar o sistema enviando o arquivo "${file.name}"?\n\nOs dados atuais ${isZip ? 'e os arquivos anexos ' : ''}serão sobrescritos.`
     );
     if (!confirm) return;
 
@@ -97,11 +99,11 @@ export default function BackupPage() {
 
       const res = await response.json();
       toast.success(
-        `Restauração via upload concluída! ${res.restoredCollections} coleções e ${res.totalRestoredRecords} registros restaurados.`
+        `Restauração via upload concluída! ${res.restoredCollections} coleções, ${res.totalRestoredRecords} registros ${isZip ? 'e arquivos anexos' : ''} restaurados.`
       );
       void loadBackups();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao restaurar banco via arquivo.');
+      toast.error(err.message || 'Erro ao restaurar sistema via arquivo.');
     } finally {
       setRestoring(null);
       event.target.value = '';
@@ -160,17 +162,17 @@ export default function BackupPage() {
       {/* Box de Instrução e Restauração Externa */}
       <section className="panel" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-          📤 Restaurar a partir de um Arquivo de Backup Externo (.json)
+          📤 Restaurar a partir de um Arquivo de Backup Externo (.zip ou .json)
         </h2>
         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-          Se você possui um arquivo de backup salvo no seu computador, pode enviá-lo para restaurar o sistema.
+          Se você possui um arquivo de backup salvo no seu computador, pode enviá-lo para restaurar o sistema (banco de dados e arquivos anexos).
         </p>
 
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#ffffff', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', color: '#334155' }}>
-          📁 Enviar Arquivo JSON e Restaurar Banco
+          📁 Enviar Arquivo (.zip / .json) e Restaurar
           <input
             type="file"
-            accept=".json"
+            accept=".zip,.json"
             onChange={handleUploadRestore}
             style={{ display: 'none' }}
           />

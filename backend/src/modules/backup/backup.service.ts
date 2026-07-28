@@ -17,6 +17,8 @@ export class BackupService {
   private readonly logger = new Logger(BackupService.name);
   private readonly backupDir = path.join(process.cwd(), 'backups');
   private readonly uploadDir = path.join(process.cwd(), 'uploads');
+  private readonly tempStorageDir = path.join(process.cwd(), 'temp-storage');
+  private readonly storageDir = path.join(process.cwd(), 'storage');
 
   constructor(@InjectConnection() private readonly connection: Connection) {
     if (!fs.existsSync(this.backupDir)) {
@@ -72,7 +74,7 @@ export class BackupService {
       // Adiciona o dump do banco de dados no zip
       zip.addFile('database.json', Buffer.from(jsonContent, 'utf-8'));
 
-      // Adiciona a pasta de arquivos anexados (uploads) recursivamente se ela existir e contiver arquivos
+      // Adiciona a pasta de uploads recursivamente se ela existir e contiver arquivos
       try {
         if (fs.existsSync(this.uploadDir) && fs.statSync(this.uploadDir).isDirectory()) {
           const files = fs.readdirSync(this.uploadDir);
@@ -82,6 +84,30 @@ export class BackupService {
         }
       } catch (folderErr: any) {
         this.logger.warn(`Erro ao verificar ou adicionar pasta uploads ao ZIP: ${folderErr.message}`);
+      }
+
+      // Adiciona a pasta de temp-storage (onde ficam os anexos das vendas) se ela existir e contiver arquivos
+      try {
+        if (fs.existsSync(this.tempStorageDir) && fs.statSync(this.tempStorageDir).isDirectory()) {
+          const files = fs.readdirSync(this.tempStorageDir);
+          if (files.length > 0) {
+            zip.addLocalFolder(this.tempStorageDir, 'temp-storage');
+          }
+        }
+      } catch (folderErr: any) {
+        this.logger.warn(`Erro ao verificar ou adicionar pasta temp-storage ao ZIP: ${folderErr.message}`);
+      }
+
+      // Adiciona a pasta de storage (onde ficam os arquivos fiscais e XMLs) se ela existir e contiver arquivos
+      try {
+        if (fs.existsSync(this.storageDir) && fs.statSync(this.storageDir).isDirectory()) {
+          const files = fs.readdirSync(this.storageDir);
+          if (files.length > 0) {
+            zip.addLocalFolder(this.storageDir, 'storage');
+          }
+        }
+      } catch (folderErr: any) {
+        this.logger.warn(`Erro ao verificar ou adicionar pasta storage ao ZIP: ${folderErr.message}`);
       }
 
       // Salva o arquivo compactado em disco
@@ -181,10 +207,15 @@ export class BackupService {
       }
       backupJson = JSON.parse(dbEntry.getData().toString('utf-8'));
 
-      // Restaurar arquivos da pasta uploads
+      // Restaurar arquivos das pastas uploads, temp-storage e storage
       const entries = zip.getEntries();
       for (const entry of entries) {
-        if (entry.entryName.startsWith('uploads/') && !entry.isDirectory) {
+        const isTargetDir = 
+          entry.entryName.startsWith('uploads/') || 
+          entry.entryName.startsWith('temp-storage/') || 
+          entry.entryName.startsWith('storage/');
+          
+        if (isTargetDir && !entry.isDirectory) {
           zip.extractEntryTo(entry, process.cwd(), true, true);
         }
       }

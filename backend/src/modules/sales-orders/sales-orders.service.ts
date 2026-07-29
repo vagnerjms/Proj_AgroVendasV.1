@@ -20,6 +20,8 @@ type SalesOrderListFilters = {
   date?: string;
   page?: string;
   limit?: string;
+  sortBy?: string;
+  sortOrder?: string;
 };
 
 @Injectable()
@@ -70,6 +72,52 @@ export class SalesOrdersService {
         }),
       )
       .then(async (filteredOrders) => {
+        // Ordenação Dinâmica
+        const sortBy = filters.sortBy || 'date';
+        const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
+
+        filteredOrders.sort((a, b) => {
+          let valA: any = (a as any)[sortBy];
+          let valB: any = (b as any)[sortBy];
+
+          if (sortBy === 'orderNumber') {
+            valA = a.orderNumber || '';
+            valB = b.orderNumber || '';
+          } else if (sortBy === 'product') {
+            valA = (a.items?.[0]?.productId as any)?.name || '';
+            valB = (b.items?.[0]?.productId as any)?.name || '';
+          } else if (sortBy === 'customer') {
+            valA = (a.customerId as any)?.name || '';
+            valB = (b.customerId as any)?.name || '';
+          } else if (sortBy === 'producer') {
+            valA = (a.producerId as any)?.name || '';
+            valB = (b.producerId as any)?.name || '';
+          } else if (sortBy === 'bags') {
+            valA = a.totalBags || 0;
+            valB = b.totalBags || 0;
+          } else if (sortBy === 'total') {
+            valA = a.totalParticularAmount || 0;
+            valB = b.totalParticularAmount || 0;
+          } else if (sortBy === 'receivable') {
+            valA = a.totalReceivableAmount || 0;
+            valB = b.totalReceivableAmount || 0;
+          } else if (sortBy === 'date') {
+            valA = a.date ? new Date(a.date).getTime() : 0;
+            valB = b.date ? new Date(b.date).getTime() : 0;
+          } else if (sortBy === 'status') {
+            valA = a.status || '';
+            valB = b.status || '';
+          }
+
+          if (typeof valA === 'string' && typeof valB === 'string') {
+            return valA.localeCompare(valB, 'pt-BR', { numeric: true }) * sortOrder;
+          }
+
+          if (valA < valB) return -1 * sortOrder;
+          if (valA > valB) return 1 * sortOrder;
+          return 0;
+        });
+
         const pageNum = filters.page ? parseInt(filters.page, 10) || 1 : null;
         const limitNum = filters.limit ? parseInt(filters.limit, 10) || 20 : 20;
         

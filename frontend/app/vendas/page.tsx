@@ -40,18 +40,23 @@ export default function SalesListPage() {
   const [total, setTotal] = useState(0);
   const limit = 20;
 
+  const [sortBy, setSortBy] = useState<string>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   useEffect(() => {
     const timer = setTimeout(() => {
       loadOrders();
     }, 400);
     return () => clearTimeout(timer);
-  }, [page, filters]);
+  }, [page, filters, sortBy, sortOrder]);
 
   function loadOrders() {
     setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),
+      sortBy,
+      sortOrder,
       ...(filters.orderNumber && { orderNumber: filters.orderNumber }),
       ...(filters.customer && { customer: filters.customer }),
       ...(filters.producer && { producer: filters.producer }),
@@ -69,6 +74,16 @@ export default function SalesListPage() {
         setTotal(0);
       })
       .finally(() => setLoading(false));
+  }
+
+  function handleSort(field: string) {
+    setPage(1);
+    if (sortBy === field) {
+      setSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
   }
 
   function updateFilter(name: keyof typeof filters, value: string) {
@@ -180,16 +195,34 @@ export default function SalesListPage() {
                 style={{ cursor: 'pointer', width: '18px', height: '18px', minHeight: 'auto' }}
               />
             </span>
-            <span>Venda</span>
-            <span>Data</span>
-            <span>Produto</span>
-            <span>Cliente</span>
-            <span>Produtor</span>
-            <span>Sacos</span>
-            <span>Total</span>
-            <span>Líquido</span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('orderNumber')}>
+              Venda {sortBy === 'orderNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('date')}>
+              Data {sortBy === 'date' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('product')}>
+              Produto {sortBy === 'product' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('customer')}>
+              Cliente {sortBy === 'customer' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('producer')}>
+              Produtor {sortBy === 'producer' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('bags')}>
+              Sacos {sortBy === 'bags' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('total')}>
+              Total {sortBy === 'total' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('receivable')}>
+              Líquido {sortBy === 'receivable' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
             <span>Valor NF</span>
-            <span>Status</span>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('status')}>
+              Status {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </span>
           </div>
           {orders.map((order) => (
             <div 

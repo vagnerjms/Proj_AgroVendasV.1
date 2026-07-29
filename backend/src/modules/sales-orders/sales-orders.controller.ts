@@ -21,7 +21,7 @@ export class SalesOrdersController {
   ) {}
 
   @Get()
-  findAll(@Query() query: { orderNumber?: string; customer?: string; producer?: string; date?: string; status?: string; page?: string; limit?: string }) {
+  findAll(@Query() query: { orderNumber?: string; customer?: string; producer?: string; date?: string; status?: string; page?: string; limit?: string; sortBy?: string; sortOrder?: string }) {
     return this.salesOrdersService.findAll(query);
   }
 

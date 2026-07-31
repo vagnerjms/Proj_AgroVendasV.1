@@ -53,11 +53,13 @@ export class PaymentsService {
       .sort({ dueDate: 1, orderNumber: 1 })
       .lean();
 
-    return payments.filter((p: any) => {
-      if (p.salesOrderId && (p.salesOrderId.isDeleted || p.salesOrderId.status === 'cancelled')) return false;
-      if (p.purchaseOrderId && (p.purchaseOrderId.isDeleted || p.purchaseOrderId.status === 'cancelled')) return false;
-      return true;
-    });
+    return payments
+      .filter((p: any) => {
+        if (p.salesOrderId && (p.salesOrderId.isDeleted || p.salesOrderId.status === 'cancelled')) return false;
+        if (p.purchaseOrderId && (p.purchaseOrderId.isDeleted || p.purchaseOrderId.status === 'cancelled')) return false;
+        return true;
+      })
+      .map((p) => this.adjustPayment(p));
   }
 
   async findOne(id: string) {
@@ -65,7 +67,7 @@ export class PaymentsService {
     if (!payment) {
       throw new NotFoundException('Conta nao encontrada.');
     }
-    return payment;
+    return this.adjustPayment(payment);
   }
 
   async ensureReceivableForSalesOrder(order: SalesOrderForReceivable) {
@@ -127,7 +129,14 @@ export class PaymentsService {
       return null;
     }
 
-    const amount = this.roundMoney(order.producerNetAmount ?? order.totalReceivableAmount ?? 0);
+    let amount = this.roundMoney(order.producerNetAmount ?? order.totalReceivableAmount ?? 0);
+
+    if (order.saleType === 'compra_venda') {
+      const cost = order.totalCostAmount ?? order.producerNetAmount ?? 0;
+      const funruralRate = order.funruralRate ?? 0.0163;
+      const funrural = this.roundMoney(cost * funruralRate);
+      amount = this.roundMoney(cost - funrural);
+    }
 
     const customer = this.extractEntity(order.customerId);
     const producer = this.extractEntity(order.producerId);
@@ -327,18 +336,43 @@ export class PaymentsService {
     todayStart.setHours(0, 0, 0, 0);
 
     const [receivables, payables] = await Promise.all([
-      this.paymentModel.find({ isDeleted: false, type: 'receivable' }).lean(),
-      this.paymentModel.find({ isDeleted: false, type: 'payable' }).lean(),
+      this.paymentModel.find({ isDeleted: false, type: 'receivable' }).populate('salesOrderId').lean(),
+      this.paymentModel.find({ isDeleted: false, type: 'payable' }).populate('salesOrderId').lean(),
     ]);
 
+    const adjustedReceivables = receivables.map((p) => this.adjustPayment(p));
+    const adjustedPayables = payables.map((p) => this.adjustPayment(p));
+
     return {
-      receivableOpenAmount: this.sumBalance(receivables.filter((payment) => this.isOpen(payment))),
-      receivableOverdueAmount: this.sumBalance(receivables.filter((payment) => this.isOpen(payment) && payment.dueDate < todayStart)),
-      receivablePaidAmount: this.sumPaidThisMonth(receivables, monthStart, monthEnd),
-      payableOpenAmount: this.sumBalance(payables.filter((payment) => this.isOpen(payment))),
-      payableOverdueAmount: this.sumBalance(payables.filter((payment) => this.isOpen(payment) && payment.dueDate < todayStart)),
-      payablePaidAmount: this.sumPaidThisMonth(payables, monthStart, monthEnd),
+      receivableOpenAmount: this.sumBalance(adjustedReceivables.filter((payment) => this.isOpen(payment))),
+      receivableOverdueAmount: this.sumBalance(adjustedReceivables.filter((payment) => this.isOpen(payment) && payment.dueDate < todayStart)),
+      receivablePaidAmount: this.sumPaidThisMonth(adjustedReceivables, monthStart, monthEnd),
+      payableOpenAmount: this.sumBalance(adjustedPayables.filter((payment) => this.isOpen(payment))),
+      payableOverdueAmount: this.sumBalance(adjustedPayables.filter((payment) => this.isOpen(payment) && payment.dueDate < todayStart)),
+      payablePaidAmount: this.sumPaidThisMonth(adjustedPayables, monthStart, monthEnd),
     };
+  }
+
+  private adjustPayment(p: any) {
+    if (!p) return p;
+    if (p.type === 'payable' && p.salesOrderId && typeof p.salesOrderId === 'object') {
+      const order = p.salesOrderId;
+      if (order.saleType === 'compra_venda') {
+        const cost = order.totalCostAmount ?? order.producerNetAmount ?? 0;
+        const funruralRate = order.funruralRate ?? 0.0163;
+        const funrural = this.roundMoney(cost * funruralRate);
+        const netAmount = this.roundMoney(cost - funrural);
+        
+        if (p.amount !== netAmount) {
+          p.amount = netAmount;
+          p.balanceAmount = this.roundMoney(netAmount - (p.paidAmount || 0));
+          if (p.balanceAmount <= 0) {
+            p.status = 'paid';
+          }
+        }
+      }
+    }
+    return p;
   }
 
   private extractEntity(value: unknown) {
@@ -381,11 +415,13 @@ export class PaymentsService {
       .sort({ dueDate: 1 })
       .lean();
 
-    return payments.filter((p: any) => {
-      if (p.salesOrderId && (p.salesOrderId.isDeleted || p.salesOrderId.status === 'cancelled')) return false;
-      if (p.purchaseOrderId && (p.purchaseOrderId.isDeleted || p.purchaseOrderId.status === 'cancelled')) return false;
-      return true;
-    });
+    return payments
+      .filter((p: any) => {
+        if (p.salesOrderId && (p.salesOrderId.isDeleted || p.salesOrderId.status === 'cancelled')) return false;
+        if (p.purchaseOrderId && (p.purchaseOrderId.isDeleted || p.purchaseOrderId.status === 'cancelled')) return false;
+        return true;
+      })
+      .map((p) => this.adjustPayment(p));
   }
 
   private isOpen(payment: Payment) {

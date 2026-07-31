@@ -75,10 +75,10 @@ export class PaymentsService {
   async ensureReceivableForSalesOrder(order: SalesOrderForReceivable) {
     const salesOrderId = new Types.ObjectId(this.getId(order._id));
     
-    // Para intermediação, o valor cheio a receber do cliente é o totalParticularAmount
-    const amount = order.saleType === 'intermediacao'
-      ? this.roundMoney(order.totalParticularAmount ?? 0)
-      : this.roundMoney(order.totalReceivableAmount ?? 0);
+    // O líquido a receber deve ser sempre o bruto descontado do FUNRURAL (baseado na nota se lançada, ou bruto da venda)
+    const amount = this.roundMoney(
+      (order.totalParticularAmount ?? 0) - (order.funruralRetentionAmount ?? 0)
+    );
 
     // Limpar contas de corretagem antigas com sufixos se existirem
     await this.paymentModel.deleteMany({ salesOrderId, type: 'receivable', orderNumber: { $in: [order.orderNumber + '-P', order.orderNumber + '-C'] } });
@@ -356,12 +356,27 @@ export class PaymentsService {
 
   private adjustPayment(p: any) {
     if (!p) return p;
-    if (p.type === 'payable' && p.salesOrderId && typeof p.salesOrderId === 'object') {
+    if (p.salesOrderId && typeof p.salesOrderId === 'object') {
       const order = p.salesOrderId;
-      if (order.saleType === 'compra_venda') {
-        const cost = order.totalCostAmount ?? order.producerNetAmount ?? 0;
-        const funrural = order.funruralRetentionAmount ?? 0;
-        const netAmount = this.roundMoney(cost - funrural);
+      
+      if (p.type === 'payable') {
+        if (order.saleType === 'compra_venda') {
+          const cost = order.totalCostAmount ?? order.producerNetAmount ?? 0;
+          const funrural = order.funruralRetentionAmount ?? 0;
+          const netAmount = this.roundMoney(cost - funrural);
+          
+          if (p.amount !== netAmount) {
+            p.amount = netAmount;
+            p.balanceAmount = this.roundMoney(netAmount - (p.paidAmount || 0));
+            if (p.balanceAmount <= 0) {
+              p.status = 'paid';
+            }
+          }
+        }
+      } else if (p.type === 'receivable') {
+        const netAmount = this.roundMoney(
+          (order.totalParticularAmount ?? 0) - (order.funruralRetentionAmount ?? 0)
+        );
         
         if (p.amount !== netAmount) {
           p.amount = netAmount;

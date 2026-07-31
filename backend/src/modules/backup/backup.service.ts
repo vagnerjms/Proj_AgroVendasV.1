@@ -24,7 +24,6 @@ export class BackupService {
     if (!fs.existsSync(this.backupDir)) {
       fs.mkdirSync(this.backupDir, { recursive: true });
     }
-    this.ensureAdmZip();
   }
 
   private ensureAdmZip() {
@@ -44,6 +43,7 @@ export class BackupService {
 
   async createBackup(): Promise<BackupFileInfo> {
     try {
+      this.ensureAdmZip();
       const collections = await this.connection.db?.listCollections().toArray() || [];
       const backupData: Record<string, any[]> = {};
       let totalRecords = 0;
@@ -192,6 +192,7 @@ export class BackupService {
     let backupJson: any;
 
     if (filename.endsWith('.zip')) {
+      this.ensureAdmZip();
       const AdmZip = require('adm-zip');
       let zip: any;
       if (fileBuffer) {

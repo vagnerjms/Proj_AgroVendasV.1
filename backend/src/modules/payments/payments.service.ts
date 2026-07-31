@@ -27,6 +27,8 @@ type SalesOrderForReceivable = {
   brokerageAmount?: number;
   brokeragePayer?: string;
   totalParticularAmount?: number;
+  totalCostAmount?: number;
+  funruralRetentionAmount?: number;
 };
 
 @Injectable()

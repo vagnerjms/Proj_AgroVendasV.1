@@ -149,6 +149,8 @@ function LojaReportContent() {
   // Common Totals
   const totalVendas = visibleData.length;
   const totalSacos = visibleData.reduce((acc, s) => acc + (s.totalBags || 0), 0);
+  const hasCenoura = uniqueProducts.some(p => p.toLowerCase().includes('cenoura'));
+  const bagsLabel = hasCenoura ? 'Total de caixas' : 'Total de sacos';
   const totalKg = visibleData.reduce((acc, s) => acc + (s.totalKg || 0), 0);
   const totalParticular = visibleData.reduce((acc, s) => acc + getGrossAmount(s), 0);
   const totalReceber = visibleData.reduce((acc, s) => acc + getNetAmount(s), 0);
@@ -508,7 +510,7 @@ function LojaReportContent() {
         </div>
         <div className="summary-card bg-green">
           <strong>{totalSacos.toLocaleString('pt-BR')}</strong>
-          <span>Total de sacos</span>
+          <span>{bagsLabel}</span>
         </div>
         <div className="summary-card bg-green">
           <strong>{totalKg.toLocaleString('pt-BR')}</strong>

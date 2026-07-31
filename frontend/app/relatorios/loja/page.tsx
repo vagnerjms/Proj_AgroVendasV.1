@@ -490,13 +490,13 @@ function LojaReportContent() {
         <h2 style={{color: headerBgColor}}>
           Relatório Final - {viewMode === 'geral' ? 'Visão Geral (Interna)' : 'Loja por Loja'}
         </h2>
-        <p>
-          {viewMode === 'cliente' 
-            ? 'Modelo revisado para leitura rápida, com as vendas listadas para o destinatário'
-            : (viewMode === 'produtor' 
-                ? 'Modelo detalhado, com abertura de preço unitário e tipo de café (Espelho da Planilha)' 
-                : 'Modelo completo, contendo todas as métricas financeiras, incluindo corretagem e lucro líquido.')}
-        </p>
+        {viewMode !== 'produtor' && (
+          <p>
+            {viewMode === 'cliente' 
+              ? 'Modelo revisado para leitura rápida, com as vendas listadas para o destinatário'
+              : 'Modelo completo, contendo todas as métricas financeiras, incluindo corretagem e lucro líquido.'}
+          </p>
+        )}
       </div>
 
 

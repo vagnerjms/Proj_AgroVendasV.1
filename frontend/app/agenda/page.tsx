@@ -565,12 +565,12 @@ export default function AgendaPage() {
                   <div className="day-events-badges">
                     {showRec && (
                       <div className={`badge-event receivable ${hasOverdue ? 'overdue' : ''}`}>
-                        <span>+ {money(recSum)}</span>
+                        <span>+ R$ {compactMoney(recSum)}</span>
                       </div>
                     )}
                     {showPay && (
                       <div className={`badge-event payable ${hasOverdue ? 'overdue' : ''}`}>
-                        <span>- {money(paySum)}</span>
+                        <span>- R$ {compactMoney(paySum)}</span>
                       </div>
                     )}
                   </div>
@@ -743,6 +743,18 @@ export default function AgendaPage() {
 
 function money(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function compactMoney(value: number): string {
+  if (value >= 1_000_000) {
+    const val = value / 1_000_000;
+    return val.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'M';
+  }
+  if (value >= 1_000) {
+    const val = value / 1_000;
+    return val.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'k';
+  }
+  return value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
 }
 
 function formatStatus(status: string) {

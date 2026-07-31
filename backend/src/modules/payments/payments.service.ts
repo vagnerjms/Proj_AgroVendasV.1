@@ -133,8 +133,7 @@ export class PaymentsService {
 
     if (order.saleType === 'compra_venda') {
       const cost = order.totalCostAmount ?? order.producerNetAmount ?? 0;
-      const funruralRate = order.funruralRate ?? 0.0163;
-      const funrural = this.roundMoney(cost * funruralRate);
+      const funrural = order.funruralRetentionAmount ?? 0;
       amount = this.roundMoney(cost - funrural);
     }
 
@@ -359,8 +358,7 @@ export class PaymentsService {
       const order = p.salesOrderId;
       if (order.saleType === 'compra_venda') {
         const cost = order.totalCostAmount ?? order.producerNetAmount ?? 0;
-        const funruralRate = order.funruralRate ?? 0.0163;
-        const funrural = this.roundMoney(cost * funruralRate);
+        const funrural = order.funruralRetentionAmount ?? 0;
         const netAmount = this.roundMoney(cost - funrural);
         
         if (p.amount !== netAmount) {

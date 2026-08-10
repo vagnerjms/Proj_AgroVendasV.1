@@ -523,6 +523,16 @@ dd {
   grid-template-columns: minmax(130px, 1.2fr) repeat(6, minmax(95px, 1fr));
 }
 
+.compra-venda-row {
+  grid-template-columns: minmax(130px, 1.5fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(105px, 1.1fr) minmax(115px, 1.2fr) minmax(115px, 1.2fr) minmax(80px, 0.8fr);
+  min-width: 820px;
+}
+
+.particular-row {
+  grid-template-columns: minmax(130px, 1.5fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(105px, 1.1fr) minmax(115px, 1.2fr) minmax(80px, 0.8fr);
+  min-width: 700px;
+}
+
 .items-head,
 .sales-table-head,
 .fiscal-table-head,

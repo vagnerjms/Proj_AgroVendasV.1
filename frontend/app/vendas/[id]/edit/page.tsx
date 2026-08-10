@@ -373,7 +373,7 @@ export default function EditSalePage() {
           <section className="panel form-section">
             <h2>Itens da Venda</h2>
             <div className="items-table">
-              <div className={`items-row items-head ${saleType === 'compra_venda' ? 'compra-venda-row' : ''}`}>
+              <div className={`items-row items-head ${saleType === 'compra_venda' ? 'compra-venda-row' : 'particular-row'}`}>
                 <span>Produto</span>
                 <span>Qtd</span>
                 <span>Peso Unit.</span>
@@ -398,7 +398,7 @@ export default function EditSalePage() {
                 const calcQtyKg = item.quantityKg !== undefined ? item.quantityKg : (item.quantityBags * item.bagWeightKg);
 
                 return (
-                  <div className={`items-row ${saleType === 'compra_venda' ? 'compra-venda-row' : ''}`} key={item.id}>
+                  <div className={`items-row ${saleType === 'compra_venda' ? 'compra-venda-row' : 'particular-row'}`} key={item.id}>
                     <select
                       value={item.productId}
                       onChange={(event) => updateItem(item.id, 'productId', event.target.value)}

@@ -561,37 +561,35 @@ export default function EditSalePage() {
           )}
         </div>
 
-        <aside className="stack sidebar-calculation">
-          <div className="panel form-section calculation-summary-panel">
-            <h2>Resumo da Venda</h2>
-            {calculation ? (
-              <dl>
-                <dt>Total de volumes</dt><dd>{calculation.totalBags}</dd>
-                <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
-                <dt>{saleType === 'compra_venda' ? 'Valor total da Venda' : 'Total Particular'}</dt>
-                <dd>{money(calculation.totalParticularAmount)}</dd>
-                {saleType === 'compra_venda' && (
-                  <>
-                    <dt>Custo total de Compra</dt>
-                    <dd>{money(calculation.totalCostAmount ?? 0)}</dd>
-                    <dt>Lucro Bruto estimado</dt>
-                    <dd style={{ fontWeight: 'bold', color: '#16a34a' }}>
-                      {money((calculation.totalParticularAmount ?? 0) - (calculation.totalCostAmount ?? 0))}
-                    </dd>
-                  </>
-                )}
-                <dt>FUNRURAL (1,63%)</dt><dd>{money(calculation.funruralRetentionAmount)}</dd>
-                <dt style={{ paddingLeft: '1.2rem', color: '#6b7280', fontSize: '0.85em' }}>Previdência Social (1,30%)</dt>
-                <dd style={{ color: '#6b7280', fontSize: '0.85em' }}>{money(calculation.funruralSocialSecurityAmount)}</dd>
-                <dt style={{ paddingLeft: '1.2rem', color: '#6b7280', fontSize: '0.85em' }}>RAT (0,10%)</dt>
-                <dd style={{ color: '#6b7280', fontSize: '0.85em' }}>{money(calculation.funruralRatAmount)}</dd>
-                <dt style={{ paddingLeft: '1.2rem', color: '#6b7280', fontSize: '0.85em' }}>SENAR (0,23%)</dt>
-                <dd style={{ color: '#6b7280', fontSize: '0.85em' }}>{money(calculation.funruralSenarAmount)}</dd>
-                <dt className="total-highlight">Total a Receber</dt>
-                <dd className="total-highlight">{money(calculation.totalReceivableAmount)}</dd>
-              </dl>
-            ) : <p className="empty">Informe os valores para calcular.</p>}
-          </div>
+        <aside className="calc-panel">
+          <h2>Resumo da Venda</h2>
+          {calculation ? (
+            <dl>
+              <dt>Total de volumes</dt><dd>{calculation.totalBags}</dd>
+              <dt>Total em kg</dt><dd>{formatKg(calculation.totalKg)}</dd>
+              <dt>{saleType === 'compra_venda' ? 'Valor total da Venda' : 'Total Particular'}</dt>
+              <dd>{money(calculation.totalParticularAmount)}</dd>
+              {saleType === 'compra_venda' && (
+                <>
+                  <dt>Custo total de Compra</dt>
+                  <dd>{money(calculation.totalCostAmount ?? 0)}</dd>
+                  <dt>Lucro Bruto estimado</dt>
+                  <dd style={{ fontWeight: 'bold', color: '#16a34a' }}>
+                    {money((calculation.totalParticularAmount ?? 0) - (calculation.totalCostAmount ?? 0))}
+                  </dd>
+                </>
+              )}
+              <dt>FUNRURAL (1,63%)</dt><dd>{money(calculation.funruralRetentionAmount)}</dd>
+              <dt style={{ paddingLeft: '1.2rem', color: '#6b7280', fontSize: '0.85em' }}>Previdência Social (1,30%)</dt>
+              <dd style={{ color: '#6b7280', fontSize: '0.85em' }}>{money(calculation.funruralSocialSecurityAmount)}</dd>
+              <dt style={{ paddingLeft: '1.2rem', color: '#6b7280', fontSize: '0.85em' }}>RAT (0,10%)</dt>
+              <dd style={{ color: '#6b7280', fontSize: '0.85em' }}>{money(calculation.funruralRatAmount)}</dd>
+              <dt style={{ paddingLeft: '1.2rem', color: '#6b7280', fontSize: '0.85em' }}>SENAR (0,23%)</dt>
+              <dd style={{ color: '#6b7280', fontSize: '0.85em' }}>{money(calculation.funruralSenarAmount)}</dd>
+              <dt className="total-highlight">Total a Receber</dt>
+              <dd className="total-highlight">{money(calculation.totalReceivableAmount)}</dd>
+            </dl>
+          ) : <p className="empty">Informe os valores para calcular.</p>}
 
           {calculation && (
             <>

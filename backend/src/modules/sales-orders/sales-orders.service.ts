@@ -435,7 +435,7 @@ export class SalesOrdersService {
   }
 
   async attachFile(id: string, file: Express.Multer.File) {
-    const order = await this.salesOrderModel.findById(id);
+    const order = await this.salesOrderModel.findById(id).populate('customerId').lean();
     if (!order) {
       throw new NotFoundException('Venda não encontrada');
     }
@@ -444,7 +444,37 @@ export class SalesOrdersService {
       { $push: { attachments: file.filename } },
       { new: true }
     );
+
+    // Disparar Webhook para n8n em segundo plano
+    const partnerName = (order.customerId as any)?.name || 'Cliente';
+    this.triggerWebhook({
+      orderNumber: order.orderNumber,
+      partnerName,
+      fileType: 'anexo_venda',
+      originalName: file.originalname,
+      downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://179.197.231.106:3001'}/sales-orders/${order._id}/files/${file.filename}`
+    }).catch(err => console.error('Erro ao disparar webhook para n8n:', err));
+
     return updated;
+  }
+
+  private async triggerWebhook(payload: {
+    orderNumber: string;
+    partnerName: string;
+    fileType: string;
+    originalName: string;
+    downloadUrl: string;
+  }) {
+    const url = process.env.N8N_WEBHOOK_URL || 'http://179.197.231.106:5678/webhook/agrovendas-uploads';
+    try {
+      await (global as any).fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (err: any) {
+      console.error(`Erro ao disparar webhook para n8n (${url}):`, err.message);
+    }
   }
 
   async removeFile(id: string, filename: string) {

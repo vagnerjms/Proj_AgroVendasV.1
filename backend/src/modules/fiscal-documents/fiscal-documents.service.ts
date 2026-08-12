@@ -244,8 +244,60 @@ export class FiscalDocumentsService {
     };
 
     fiscalDocument.files.push(fileEntry);
-    await fiscalDocument.save();
+    const saved = await fiscalDocument.save();
+
+    // Disparar Webhook para n8n em segundo plano
+    const newFile = saved.files[saved.files.length - 1];
+    const fileId = (newFile as any)._id?.toString() || '';
+
+    this.findOrderWithPartners(fiscalDocument.salesOrderId, fiscalDocument.purchaseOrderId)
+      .then((order) => {
+        const partnerName = 'customerId' in order
+          ? ((order.customerId as any)?.name || 'Cliente')
+          : ((order.producerId as any)?.name || 'Produtor');
+          
+        this.triggerWebhook({
+          orderNumber: fiscalDocument.orderNumber,
+          partnerName,
+          fileType: 'nota_fiscal',
+          originalName: file.originalname,
+          downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://179.197.231.106:3001'}/fiscal-documents/${fiscalDocument._id}/files/${fileId}/download`
+        });
+      })
+      .catch(err => console.error('Erro ao disparar webhook para n8n:', err));
+
     return fileEntry;
+  }
+
+  private async findOrderWithPartners(salesOrderId?: string | Types.ObjectId, purchaseOrderId?: string | Types.ObjectId) {
+    if (salesOrderId) {
+      const salesOrder = await this.salesOrderModel.findOne({ _id: salesOrderId, isDeleted: false }).populate('customerId producerId').lean();
+      if (salesOrder) return salesOrder;
+    }
+    if (purchaseOrderId) {
+      const purchaseOrder = await this.purchaseOrderModel.findOne({ _id: purchaseOrderId, isDeleted: false }).populate('producerId').lean();
+      if (purchaseOrder) return purchaseOrder;
+    }
+    throw new NotFoundException('Venda ou compra nao encontrada para vinculo fiscal.');
+  }
+
+  private async triggerWebhook(payload: {
+    orderNumber: string;
+    partnerName: string;
+    fileType: string;
+    originalName: string;
+    downloadUrl: string;
+  }) {
+    const url = process.env.N8N_WEBHOOK_URL || 'http://179.197.231.106:5678/webhook/agrovendas-uploads';
+    try {
+      await (global as any).fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (err: any) {
+      console.error(`Erro ao disparar webhook para n8n (${url}):`, err.message);
+    }
   }
 
   async getFilePath(id: string, fileId: string) {

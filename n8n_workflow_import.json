@@ -33,8 +33,7 @@
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
-        "resource": "folder",
+        "authentication": "serviceAccount",
         "operation": "list",
         "q": "=name = '{{ $('Webhook').item.json.orderNumber }} - {{ $('Webhook').item.json.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
         "options": {}
@@ -46,7 +45,13 @@
         240
       ],
       "id": "gdrive-find-node-id",
-      "name": "Buscar Pasta"
+      "name": "Buscar Pasta",
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "",
+          "name": "Google Service Account account"
+        }
+      }
     },
     {
       "parameters": {
@@ -79,7 +84,7 @@
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
+        "authentication": "serviceAccount",
         "resource": "folder",
         "name": "={{ $('Webhook').item.json.orderNumber }} - {{ $('Webhook').item.json.partnerName }}",
         "options": {}
@@ -91,11 +96,17 @@
         340
       ],
       "id": "gdrive-create-node-id",
-      "name": "Criar Pasta"
+      "name": "Criar Pasta",
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "",
+          "name": "Google Service Account account"
+        }
+      }
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
+        "authentication": "serviceAccount",
         "resource": "file",
         "operation": "upload",
         "parents": "=[ \"{{ $json.id ? $json.id : $('Criar Pasta').item.json.id }}\" ]",
@@ -112,7 +123,13 @@
         240
       ],
       "id": "gdrive-upload-node-id",
-      "name": "Upload para o Google Drive"
+      "name": "Upload para o Google Drive",
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "",
+          "name": "Google Service Account account"
+        }
+      }
     }
   ],
   "connections": {

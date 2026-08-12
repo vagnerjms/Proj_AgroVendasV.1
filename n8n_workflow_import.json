@@ -1,0 +1,190 @@
+{
+  "name": "AgroVendas to Google Drive Upload",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agrovendas-uploads",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        240
+      ],
+      "id": "webhook-node-id",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.downloadUrl }}",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        220,
+        240
+      ],
+      "id": "http-request-node-id",
+      "name": "Download Arquivo"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "folder",
+        "operation": "list",
+        "q": "=name = '{{ $('Webhook').item.json.orderNumber }} - {{ $('Webhook').item.json.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        440,
+        240
+      ],
+      "id": "gdrive-find-node-id",
+      "name": "Buscar Pasta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": "isNotEmpty"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        240
+      ],
+      "id": "if-node-id",
+      "name": "Pasta Existe?"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "folder",
+        "name": "={{ $('Webhook').item.json.orderNumber }} - {{ $('Webhook').item.json.partnerName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        880,
+        340
+      ],
+      "id": "gdrive-create-node-id",
+      "name": "Criar Pasta"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "upload",
+        "parents": "=[ \"{{ $json.id ? $json.id : $('Criar Pasta').item.json.id }}\" ]",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "options": {
+          "name": "={{ $('Webhook').item.json.originalName }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1100,
+        240
+      ],
+      "id": "gdrive-upload-node-id",
+      "name": "Upload para o Google Drive"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Download Arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Arquivo": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta": {
+      "main": [
+        [
+          {
+            "node": "Pasta Existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pasta Existe?": {
+      "main": [
+        [
+          {
+            "node": "Upload para o Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Criar Pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Pasta": {
+      "main": [
+        [
+          {
+            "node": "Upload para o Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}

@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.body.downloadUrl }}",
+        "url": "={{ $json.body.downloadUrl.replace('179.197.231.106', '172.17.0.1') }}",
         "responseFormat": "file",
         "options": {}
       },
@@ -26,7 +26,7 @@
       "typeVersion": 4.1,
       "position": [
         220,
-        240
+        140
       ],
       "id": "http-request-node-id",
       "name": "Download Arquivo"
@@ -35,17 +35,18 @@
       "parameters": {
         "authentication": "serviceAccount",
         "operation": "list",
-        "q": "=name = '{{ $('Webhook').item.json.body.orderNumber }} - {{ $('Webhook').item.json.body.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "q": "=name = '{{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
         "options": {}
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        440,
-        240
+        220,
+        340
       ],
       "id": "gdrive-find-node-id",
       "name": "Buscar Pasta",
+      "alwaysOutputData": true,
       "credentials": {
         "googleServiceAccount": {
           "id": "",
@@ -64,9 +65,9 @@
           "conditions": [
             {
               "id": "cond-1",
-              "leftValue": "={{ $json.id }}",
+              "leftValue": "={{ $json.id ? true : false }}",
               "rightValue": "",
-              "operator": "isNotEmpty"
+              "operator": "isTrue"
             }
           ],
           "combinator": "and"
@@ -76,24 +77,24 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        660,
-        240
+        440,
+        340
       ],
       "id": "if-node-id",
-      "name": "Pasta Existe?"
+      "name": "A pasta existe"
     },
     {
       "parameters": {
         "authentication": "serviceAccount",
         "resource": "folder",
-        "name": "={{ $('Webhook').item.json.body.orderNumber }} - {{ $('Webhook').item.json.body.partnerName }}",
+        "name": "={{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}",
         "options": {}
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        880,
-        340
+        660,
+        440
       ],
       "id": "gdrive-create-node-id",
       "name": "Criar Pasta",
@@ -109,17 +110,17 @@
         "authentication": "serviceAccount",
         "resource": "file",
         "operation": "upload",
-        "parents": "=[ \"{{ $json.id ? $json.id : $('Criar Pasta').item.json.id }}\" ]",
+        "parents": "=[ \"{{ $node[\"Buscar Pasta\"].json.id || $node[\"Criar Pasta\"].json.id }}\" ]",
         "binaryData": true,
         "binaryPropertyName": "data",
         "options": {
-          "name": "={{ $('Webhook').item.json.body.originalName }}"
+          "name": "={{ $node[\"Webhook\"].json.body.originalName }}"
         }
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1100,
+        880,
         240
       ],
       "id": "gdrive-upload-node-id",
@@ -140,6 +141,11 @@
             "node": "Download Arquivo",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Buscar Pasta",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -148,7 +154,7 @@
       "main": [
         [
           {
-            "node": "Buscar Pasta",
+            "node": "Upload para o Google Drive",
             "type": "main",
             "index": 0
           }
@@ -159,36 +165,19 @@
       "main": [
         [
           {
-            "node": "Pasta Existe?",
+            "node": "A pasta existe",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Pasta Existe?": {
+    "A pasta existe": {
       "main": [
-        [
-          {
-            "node": "Upload para o Google Drive",
-            "type": "main",
-            "index": 0
-          }
-        ],
+        [],
         [
           {
             "node": "Criar Pasta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Criar Pasta": {
-      "main": [
-        [
-          {
-            "node": "Upload para o Google Drive",
             "type": "main",
             "index": 0
           }

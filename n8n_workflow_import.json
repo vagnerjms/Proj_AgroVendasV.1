@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.downloadUrl }}",
+        "url": "={{ $json.body.downloadUrl }}",
         "responseFormat": "file",
         "options": {}
       },
@@ -35,7 +35,7 @@
       "parameters": {
         "authentication": "serviceAccount",
         "operation": "list",
-        "q": "=name = '{{ $('Webhook').item.json.orderNumber }} - {{ $('Webhook').item.json.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "q": "=name = '{{ $('Webhook').item.json.body.orderNumber }} - {{ $('Webhook').item.json.body.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
         "options": {}
       },
       "type": "n8n-nodes-base.googleDrive",
@@ -86,7 +86,7 @@
       "parameters": {
         "authentication": "serviceAccount",
         "resource": "folder",
-        "name": "={{ $('Webhook').item.json.orderNumber }} - {{ $('Webhook').item.json.partnerName }}",
+        "name": "={{ $('Webhook').item.json.body.orderNumber }} - {{ $('Webhook').item.json.body.partnerName }}",
         "options": {}
       },
       "type": "n8n-nodes-base.googleDrive",
@@ -113,7 +113,7 @@
         "binaryData": true,
         "binaryPropertyName": "data",
         "options": {
-          "name": "={{ $('Webhook').item.json.originalName }}"
+          "name": "={{ $('Webhook').item.json.body.originalName }}"
         }
       },
       "type": "n8n-nodes-base.googleDrive",

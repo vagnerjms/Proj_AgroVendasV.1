@@ -99,6 +99,7 @@ export class PaymentsService {
           customerWhatsapp: customer.whatsapp,
           producerId: producer.id ? new Types.ObjectId(producer.id) : undefined,
           producerName: producer.name,
+          dueDate: order.dueDate ? new Date(order.dueDate) : undefined,
         });
       }
       return existing;
@@ -146,6 +147,7 @@ export class PaymentsService {
     if (existing) {
       if (existing.status !== 'cancelled') {
         const balanceAmount = this.roundMoney(amount - existing.paidAmount);
+        const dueDate = order.producerDueDate ? new Date(order.producerDueDate) : order.dueDate ? new Date(order.dueDate) : undefined;
         await this.paymentModel.findByIdAndUpdate(existing._id, {
           amount,
           balanceAmount,
@@ -155,6 +157,7 @@ export class PaymentsService {
           customerWhatsapp: customer.whatsapp,
           producerId: producer.id ? new Types.ObjectId(producer.id) : undefined,
           producerName: producer.name,
+          dueDate,
         });
       }
       return existing;
@@ -197,6 +200,7 @@ export class PaymentsService {
           status: balanceAmount <= 0 ? 'paid' : (existing.paidAmount > 0 ? 'partial' : 'open'),
           producerId: producer.id ? new Types.ObjectId(producer.id) : undefined,
           producerName: producer.name,
+          dueDate: order.dueDate ? new Date(order.dueDate) : undefined,
         });
       }
       return existing;

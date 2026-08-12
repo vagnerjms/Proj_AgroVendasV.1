@@ -26,7 +26,7 @@
       "typeVersion": 4.1,
       "position": [
         220,
-        140
+        120
       ],
       "id": "http-request-node-id",
       "name": "Download Arquivo"
@@ -88,13 +88,15 @@
         "authentication": "serviceAccount",
         "resource": "folder",
         "name": "={{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}",
-        "options": {}
+        "options": {
+          "parentFolder": "AgroVenda"
+        }
       },
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
         660,
-        440
+        460
       ],
       "id": "gdrive-create-node-id",
       "name": "Criar Pasta",
@@ -107,10 +109,25 @@
     },
     {
       "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        240
+      ],
+      "id": "merge-node-id",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
         "authentication": "serviceAccount",
         "resource": "file",
         "operation": "upload",
-        "parents": "=[ \"{{ $node[\"Buscar Pasta\"].json.id || $node[\"Criar Pasta\"].json.id }}\" ]",
+        "parents": "=[ \"{{ $json.id || $node[\"Buscar Pasta\"].json.id || $node[\"Criar Pasta\"].json.id }}\" ]",
         "binaryData": true,
         "binaryPropertyName": "data",
         "options": {
@@ -120,7 +137,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        880,
+        1100,
         240
       ],
       "id": "gdrive-upload-node-id",
@@ -154,7 +171,7 @@
       "main": [
         [
           {
-            "node": "Upload para o Google Drive",
+            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -174,10 +191,38 @@
     },
     "A pasta existe": {
       "main": [
-        [],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
         [
           {
             "node": "Criar Pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Pasta": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Upload para o Google Drive",
             "type": "main",
             "index": 0
           }

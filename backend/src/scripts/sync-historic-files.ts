@@ -12,6 +12,9 @@ async function run() {
   console.log('Iniciando sincronização de arquivos históricos com o n8n...');
   await mongoose.connect(mongoUri);
   const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('Banco de dados nao disponivel');
+  }
 
   // 1. Sincronizar anexos de vendas
   const salesOrdersCol = db.collection('salesorders');

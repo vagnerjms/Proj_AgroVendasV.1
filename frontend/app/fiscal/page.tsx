@@ -563,99 +563,81 @@ export default function FiscalPage() {
                           const content = await page.getTextContent();
                           const text = content.items.map((i: any) => i.str).join(' ');
 
-                           // A Chave de Acesso no PDF costuma ter espaços (ex: 1234 5678...). 
-                           // Buscamos 44 dígitos que podem estar separados por até 3 espaços.
-                           const possibleKeys = text.match(/(?:\d[\s]{0,3}){44}/g);
-                           let chNFe = undefined;
-                           if (possibleKeys) {
-                             for (const pk of possibleKeys) {
-                               const clean = pk.replace(/\D/g, '');
-                               if (clean.length === 44) {
-                                 chNFe = clean;
-                                 break;
-                               }
-                             }
-                           }
-                           
-                           // Número da NF
-                           let nNF = undefined;
-                           const numberSpecificMatch = text.match(/(?:Nº|N\.|NF-e|Número)\s*(\d{1,9})\s*(?:SÉRIE|SERIE)/i);
-                           if (numberSpecificMatch) {
-                             nNF = numberSpecificMatch[1];
-                           } else {
-                             const numberMatch = text.match(/(?:Nº|N\.|NF-e|Número)\s*(\d{1,9})/i);
-                             if (numberMatch) nNF = numberMatch[1];
-                           }
+                          // A Chave de Acesso no PDF costuma ter espaços.
+                          const cleanAllSpace = text.replace(/\s/g, '');
+                          const chMatch = cleanAllSpace.match(/\d{44}/);
+                          const chNFe = chMatch ? chMatch[0] : undefined;
 
-                           // Série da NF
-                           let serie = undefined;
-                           const seriesSpecificMatch = text.match(/SÉRIE\s+(\d+)/i) || text.match(/PROTOCOLO DE AUTORIZAÇÃO DE USO\s+\d+\s+(\d{1,4})/i);
-                           if (seriesSpecificMatch) {
-                             serie = seriesSpecificMatch[1];
-                           }
+                          // Número da NF
+                          const numberMatch = text.match(/(?:N[º°]|[Nn]umero|[Nn]úmero|[Nn]º)\s*(\d{6,9})/i);
+                          const nNF = numberMatch ? numberMatch[1] : undefined;
 
-                           // Data de Emissão
-                           let issuedAtDate = undefined;
-                           const dateMatch = text.match(/(?:DATA\s+(?:DE\s+)?EMISS[ÃA]O)\s*(\d{2}\/\d{2}\/\d{2,4})/i);
-                           if (dateMatch) {
-                             const parts = dateMatch[1].split('/');
-                             if (parts.length === 3) {
-                               const day = parts[0].padStart(2, '0');
-                               const month = parts[1].padStart(2, '0');
-                               let year = parts[2].trim();
-                               if (year.length === 2) {
-                                 year = `20${year}`;
-                               }
-                               issuedAtDate = `${year}-${month}-${day}`;
-                             }
-                           }
+                          // Série da NF (procurando primeiro o padrão clássico, e depois se estiver próximo ao protocolo)
+                          let serie = undefined;
+                          const serieDirect = text.match(/S[EÉ]RIE\s+(\d{1,4})/i);
+                          if (serieDirect) {
+                            serie = serieDirect[1];
+                          } else {
+                            const serieProtocol = text.match(/(?:PROTOCOLO[\s\S]{0,100}?\d{15})\s+(\d{1,4})/i);
+                            if (serieProtocol) {
+                              serie = serieProtocol[1];
+                            }
+                          }
 
-                           // Emitente (Remetente)
-                           let emitName = undefined;
-                           const emitSpecificMatch = text.match(/(?:REMETENTE|EMITENTE)\s+(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL)\s+(?:CNPJ\s*[\/\-]?\s*CPF)?\s*([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)(?:\s+\d{2,3}[\d.\-\/]+|\s+CNPJ|\s+CPF|\s+ENDEREÇO)/i);
-                           if (emitSpecificMatch) {
-                             emitName = emitSpecificMatch[1].trim();
-                           } else {
-                             const emitMatch = text.match(/^\s*([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{5,100}?)\s+(?:DANFE|DOCUMENTO AUXILIAR|CNPJ|RUA|AV|AVENIDA|RODOVIA)/i);
-                             if (emitMatch) emitName = emitMatch[1].trim();
-                           }
-                           if (emitName && emitName.length < 3) emitName = undefined;
+                          // Data de Emissão
+                          let issuedAtDate = undefined;
+                          const dateMatch = text.match(/(?:DATA\s+(?:DE\s+)?EMISS[ÃA]O|EMISS[ÃA]O)[\s\S]{0,50}?(\d{2}\/\d{2}\/\d{2,4})/i);
+                          if (dateMatch) {
+                            const parts = dateMatch[1].split('/');
+                            if (parts.length === 3) {
+                              const day = parts[0].padStart(2, '0');
+                              const month = parts[1].padStart(2, '0');
+                              let year = parts[2].trim();
+                              if (year.length === 2) {
+                                year = `20${year}`;
+                              }
+                              issuedAtDate = `${year}-${month}-${day}`;
+                            }
+                          }
 
-                           // Destinatário
-                           let destName = undefined;
-                           const destSpecificMatch = text.match(/(?:DESTINAT[ÁA]RIO)\s+(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL)\s+([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)\s+(?:RODOVIA|RUA|AV|AVENIDA|CNPJ|CPF|ENDEREÇO)/i);
-                           if (destSpecificMatch) {
-                             destName = destSpecificMatch[1].trim();
-                           } else {
-                             const destMatch = text.match(/(?:NOME\s*[\/\-]?\s*RAZ[ÃA]O\s+SOCIAL|DESTINAT[ÁA]RIO.*?NOME.*?)\s+([A-Z0-9\s&.\-ÇçÃãÕõÂâÊêÎîÔôÛûÁáÉéÍíÓóÚú]{3,80}?)\s+(?:CNPJ|CPF|DATA|ENDEREÇO|BAIRRO|INSCRIÇÃO)/i);
-                             if (destMatch) destName = destMatch[1].trim();
-                           }
-                           if (destName && destName.length < 3) destName = undefined;
+                          // Emitente (Remetente)
+                          let emitName = undefined;
+                          const emitMatch = text.match(/(?:REMETENTE|EMITENTE)[\s\S]{0,100}?(?:NOME[\s\S]{0,50}?SOCIAL)[\s\S]{0,50}?([A-Z\s.-]{3,80}?)(?=\s+\d{2,3}[\d.-]{8,})/i);
+                          if (emitMatch) {
+                            emitName = emitMatch[1].trim();
+                          }
 
-                           // Valor Total
-                           let amount = undefined;
-                           const amountMatches = Array.from(text.matchAll(/(?:VALOR TOTAL|V\. TOTAL|TOTAL DA NOTA|TOTAL DOS PRODUTOS)[\s\S]{0,150}?([\d]{1,3}(?:\.[\d]{3})*,\d{2})/gi));
-                           if (amountMatches.length > 0) {
-                             const values = amountMatches.map((m: any) => parseFloat(m[1].replace(/\./g, '').replace(',', '.')));
-                             amount = Math.max(...values);
-                           } else {
-                             const fallback = text.match(/(?:R\$|VALOR)[\s:]*([\d]{1,3}(?:\.[\d]{3})*,\d{2})/i);
-                             if (fallback) {
-                               amount = parseFloat(fallback[1].replace(/\./g, '').replace(',', '.'));
-                             }
-                           }
+                          // Destinatário
+                          let destName = undefined;
+                          const destMatch = text.match(/(?:DESTINAT[ÁA]RIO)[\s\S]{0,100}?(?:NOME[\s\S]{0,50}?SOCIAL)[\s\S]{0,50}?([A-Z\s.-]{3,80}?)(?=\s+(?:RODOVIA|RUA|AV|AVENIDA|ENDERE[CÇ]O|CNPJ|CPF|BAIRRO))/i);
+                          if (destMatch) {
+                            destName = destMatch[1].trim();
+                          }
 
-                           setForm((prev) => ({
-                             ...prev,
-                             ...(chNFe && { accessKey: chNFe }),
-                             ...(nNF && { number: nNF }),
-                             ...(serie && { series: serie }),
-                             ...(issuedAtDate && { issuedAt: issuedAtDate }),
-                             ...(amount !== undefined && !isNaN(amount) && { amount: amount }),
-                             ...(emitName && { issuer: emitName }),
-                             ...(destName && { recipient: destName })
-                           }));
-                          toast.success('PDF analisado via nuvem! Por favor, confira os dados extraídos. ✨');
+                          // Valor Total
+                          let amount = undefined;
+                          const amountMatches = Array.from(text.matchAll(/(?:VALOR TOTAL|V\. TOTAL|TOTAL DA NOTA|TOTAL DOS PRODUTOS)[\s\S]{0,150}?([\d]{1,3}(?:\.[\d]{3})*,\d{2})/gi));
+                          if (amountMatches.length > 0) {
+                            const values = amountMatches.map((m: any) => parseFloat(m[1].replace(/\./g, '').replace(',', '.')));
+                            amount = Math.max(...values);
+                          } else {
+                            const fallback = text.match(/(?:R\$|VALOR)[\s:]*([\d]{1,3}(?:\.[\d]{3})*,\d{2})/i);
+                            if (fallback) {
+                              amount = parseFloat(fallback[1].replace(/\./g, '').replace(',', '.'));
+                            }
+                          }
+
+                          setForm((prev) => ({
+                            ...prev,
+                            ...(chNFe && { accessKey: chNFe }),
+                            ...(nNF && { number: nNF }),
+                            ...(serie && { series: serie }),
+                            ...(issuedAtDate && { issuedAt: issuedAtDate }),
+                            ...(amount !== undefined && !isNaN(amount) && { amount: amount }),
+                            ...(emitName && { issuer: emitName }),
+                            ...(destName && { recipient: destName })
+                          }));
+                          toast.success('PDF analisado com sucesso! Por favor, confira os dados extraídos. ✨');
                         } catch (err) {
                           console.error(err);
                           toast.error('Erro ao ler os dados do PDF.');

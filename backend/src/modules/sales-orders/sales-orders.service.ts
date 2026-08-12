@@ -452,7 +452,7 @@ export class SalesOrdersService {
       partnerName,
       fileType: 'anexo_venda',
       originalName: file.originalname,
-      downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://179.197.231.106:3001'}/sales-orders/${order._id}/files/${file.filename}`
+      downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://179.197.231.106:3001'}/sales-orders/${order._id}/files/${file.filename}?apiKey=${process.env.API_KEY || 'AgroVendas_n8n_Secret_Key_2026'}`
     }).catch(err => console.error('Erro ao disparar webhook para n8n:', err));
 
     return updated;

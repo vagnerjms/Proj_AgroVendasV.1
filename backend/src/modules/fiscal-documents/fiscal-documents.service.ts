@@ -261,7 +261,7 @@ export class FiscalDocumentsService {
           partnerName,
           fileType: 'nota_fiscal',
           originalName: file.originalname,
-          downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://179.197.231.106:3001'}/fiscal-documents/${fiscalDocument._id}/files/${fileId}/download`
+          downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://179.197.231.106:3001'}/fiscal-documents/${fiscalDocument._id}/files/${fileId}/download?apiKey=${process.env.API_KEY || 'AgroVendas_n8n_Secret_Key_2026'}`
         });
       })
       .catch(err => console.error('Erro ao disparar webhook para n8n:', err));

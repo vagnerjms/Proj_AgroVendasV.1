@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const mongoUri =
   process.env.MONGODB_URI ??
@@ -34,19 +34,19 @@ async function run() {
         orderNumber: order.orderNumber,
         partnerName,
         fileType: 'anexo_venda',
-        originalName: filename.substring(filename.indexOf('-') + 1),
-        downloadUrl: `${API_URL}/sales-orders/${order._id}/files/${filename}?apiKey=${process.env.API_KEY || 'AgroVendas_n8n_Secret_Key_2026'}`
+        originalName: filename.substring(filename.indexOf('-') + 1), // remove o prefixo timestamp do arquivo
+        downloadUrl: `${API_URL}/sales-orders/${order._id}/files/${filename}`
       };
 
       console.log(`-> Enviando anexo de venda: ${payload.originalName} (${order.orderNumber})`);
       try {
-        await global.fetch(N8N_WEBHOOK_URL, {
+        await (global as any).fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         salesCount++;
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Erro ao enviar para n8n: ${err.message}`);
       }
     }
@@ -92,18 +92,18 @@ async function run() {
         partnerName,
         fileType: 'nota_fiscal',
         originalName: file.originalName,
-        downloadUrl: `${API_URL}/fiscal-documents/${doc._id}/files/${fileId}/download?apiKey=${process.env.API_KEY || 'AgroVendas_n8n_Secret_Key_2026'}`
+        downloadUrl: `${API_URL}/fiscal-documents/${doc._id}/files/${fileId}/download`
       };
 
       console.log(`-> Enviando nota fiscal: ${payload.originalName} (${doc.orderNumber})`);
       try {
-        await global.fetch(N8N_WEBHOOK_URL, {
+        await (global as any).fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         fiscalCount++;
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Erro ao enviar para n8n: ${err.message}`);
       }
     }

@@ -22,7 +22,7 @@
         "resource": "fileFolder",
         "operation": "search",
         "searchMethod": "advancedSearch",
-        "queryString": "=name = '{{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "queryString": "=name = '{{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '1QKum1pz3NW3ZDo1eKyu2_08B4KDLaIro' in parents",
         "options": {}
       },
       "type": "n8n-nodes-base.googleDrive",
@@ -76,7 +76,7 @@
         "resource": "folder",
         "name": "={{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}",
         "options": {
-          "parentFolder": "AgroVenda"
+          "parentFolder": "1QKum1pz3NW3ZDo1eKyu2_08B4KDLaIro"
         }
       },
       "type": "n8n-nodes-base.googleDrive",

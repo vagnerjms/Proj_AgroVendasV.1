@@ -18,21 +18,6 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.body.downloadUrl.replace('179.197.231.106', '172.17.0.1') }}",
-        "responseFormat": "file",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        220,
-        120
-      ],
-      "id": "http-request-node-id",
-      "name": "Download Arquivo"
-    },
-    {
-      "parameters": {
         "authentication": "serviceAccount",
         "resource": "fileFolder",
         "operation": "search",
@@ -43,8 +28,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        220,
-        340
+        200,
+        240
       ],
       "id": "gdrive-find-node-id",
       "name": "Buscar Pasta",
@@ -79,11 +64,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        440,
-        340
+        420,
+        240
       ],
       "id": "if-node-id",
-      "name": "A pasta existe"
+      "name": "If"
     },
     {
       "parameters": {
@@ -97,8 +82,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        660,
-        460
+        620,
+        340
       ],
       "id": "gdrive-create-node-id",
       "name": "Criar Pasta",
@@ -111,25 +96,25 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
+        "url": "={{ $node[\"Webhook\"].json.body.downloadUrl.replace('179.197.231.106', '172.17.0.1') }}",
+        "responseFormat": "file",
         "options": {}
       },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
-        880,
+        820,
         240
       ],
-      "id": "merge-node-id",
-      "name": "Merge"
+      "id": "http-request-node-id",
+      "name": "Download Arquivo"
     },
     {
       "parameters": {
         "authentication": "serviceAccount",
         "resource": "file",
         "operation": "upload",
-        "parents": "=[ \"{{ $json.id || $node[\"Buscar Pasta\"].json.id || $node[\"Criar Pasta\"].json.id }}\" ]",
+        "parents": "=[ \"{{ $json.id }}\" ]",
         "binaryData": true,
         "binaryPropertyName": "data",
         "options": {
@@ -139,11 +124,11 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1100,
+        1040,
         240
       ],
       "id": "gdrive-upload-node-id",
-      "name": "Upload para o Google Drive",
+      "name": "Upload file",
       "credentials": {
         "googleServiceAccount": {
           "id": "",
@@ -157,23 +142,7 @@
       "main": [
         [
           {
-            "node": "Download Arquivo",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Buscar Pasta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download Arquivo": {
-      "main": [
-        [
-          {
-            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -184,20 +153,20 @@
       "main": [
         [
           {
-            "node": "A pasta existe",
+            "node": "If",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "A pasta existe": {
+    "If": {
       "main": [
         [
           {
-            "node": "Merge",
+            "node": "Download Arquivo",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ],
         [
@@ -213,18 +182,18 @@
       "main": [
         [
           {
-            "node": "Merge",
+            "node": "Download Arquivo",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
     },
-    "Merge": {
+    "Download Arquivo": {
       "main": [
         [
           {
-            "node": "Upload para o Google Drive",
+            "node": "Upload file",
             "type": "main",
             "index": 0
           }

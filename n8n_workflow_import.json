@@ -21,7 +21,7 @@
         "authentication": "serviceAccount",
         "resource": "fileFolder",
         "operation": "search",
-        "searchMethod": "advanced",
+        "searchMethod": "advancedSearch",
         "queryString": "=name = '{{ $node[\"Webhook\"].json.body.orderNumber }} - {{ $node[\"Webhook\"].json.body.partnerName }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
         "options": {}
       },

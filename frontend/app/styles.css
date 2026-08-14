@@ -548,8 +548,28 @@ dd {
 
 .sales-table-head,
 .sales-table-row {
-  grid-template-columns: 40px minmax(130px, 0.8fr) minmax(100px, 0.8fr) repeat(3, minmax(130px, 1fr)) minmax(80px, 0.6fr) minmax(95px, 0.7fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr) minmax(110px, 0.8fr);
-  min-width: 1500px;
+  grid-template-columns: 28px 1.05fr 0.75fr 0.95fr 1.15fr 1.15fr 0.75fr 0.85fr 0.9fr 0.9fr 0.9fr 0.75fr 0.95fr 0.95fr;
+  min-width: 0;
+  width: 100%;
+  gap: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 12px;
+}
+
+.sales-table-head > span,
+.sales-table-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .sales-table-head,
+  .sales-table-row {
+    grid-template-columns: 24px 0.9fr 0.7fr 0.85fr 1fr 1fr 0.7fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr 0.85fr 0.85fr;
+    gap: 5px;
+    font-size: 11px;
+  }
 }
 
 .sales-table-row {

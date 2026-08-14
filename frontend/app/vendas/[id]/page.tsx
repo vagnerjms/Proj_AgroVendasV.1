@@ -44,6 +44,8 @@ type SalesOrder = {
   attachments?: string[];
   orderEvidenceAttachments?: string[];
   fiscalDocuments?: Array<{ number?: string; accessKey?: string; amount?: number; totalWeightKg?: number; unitPrice?: number; extractionMethod?: string; extractionConfidence?: number; extractionError?: string }>;
+  fiscalDocumentNumber?: string;
+  fiscalDocumentAmount?: number;
   fiscalWeightKg?: number;
   fiscalUnitPrice?: number;
   fiscalTotalAmount?: number;
@@ -147,6 +149,14 @@ export default function SaleDetailPage() {
   }
 
   const isResale = order.saleType === 'compra_venda';
+  const fiscalWeight = order.fiscalWeightKg;
+  const fiscalUnitPrice = order.fiscalUnitPrice;
+  const fiscalTotal = order.fiscalTotalAmount ?? order.fiscalDocumentAmount;
+  const fiscalBoxes = fiscalWeight !== undefined ? fiscalWeight / 29 : undefined;
+  const fiscalQuote = fiscalWeight !== undefined && fiscalUnitPrice !== undefined
+    ? fiscalWeight * fiscalUnitPrice
+    : order.fiscalBoxQuote;
+  const hasFiscalData = Boolean(order.fiscalDocuments?.length || order.fiscalValueSource === 'fiscal_document' || order.fiscalDocumentNumber || fiscalTotal !== undefined);
 
   return (
     <main className="shell">
@@ -182,12 +192,12 @@ export default function SaleDetailPage() {
 
       <section className="summary-grid">
         <article className="summary-card">
-          <span>Total de volumes</span>
-          <strong>{order.totalBags ?? 0}</strong>
+          <span>Peso líquido NF</span>
+          <strong>{fiscalWeight !== undefined ? formatKg(fiscalWeight) : '-'}</strong>
         </article>
         <article className="summary-card">
           <span>{isResale ? 'Total da Venda' : 'Total Particular'}</span>
-          <strong>{money(order.totalParticularAmount ?? 0)}</strong>
+          <strong>{fiscalTotal !== undefined ? money(fiscalTotal) : '-'}</strong>
         </article>
         {isResale && (
           <article className="summary-card">
@@ -197,11 +207,11 @@ export default function SaleDetailPage() {
         )}
         <article className="summary-card">
           <span>Total a Receber</span>
-          <strong>{money(order.totalReceivableAmount ?? 0)}</strong>
+          <strong>{fiscalTotal !== undefined ? money(fiscalTotal) : '-'}</strong>
         </article>
       </section>
 
-      {order.fiscalDocuments && order.fiscalDocuments.length > 0 && (
+      {hasFiscalData && (
         <section className="panel form-section" style={{ marginBottom: '1.5rem' }}>
           <h2>Dados oficiais da NF (somente leitura)</h2>
           {order.fiscalDocuments.map((doc, index) => (
@@ -216,6 +226,15 @@ export default function SaleDetailPage() {
               {doc.extractionError && <><dt>Erro de extração</dt><dd className="error-message">{doc.extractionError}</dd></>}
             </dl>
           ))}
+          {(!order.fiscalDocuments || order.fiscalDocuments.length === 0) && (
+            <dl>
+              <dt>Pedido</dt><dd>{order.orderNumber}</dd>
+              <dt>Número da NF</dt><dd>{order.fiscalDocumentNumber || '-'}</dd>
+              <dt>Peso total</dt><dd>{fiscalWeight !== undefined ? formatKg(fiscalWeight) : '-'}</dd>
+              <dt>Valor unitário</dt><dd>{fiscalUnitPrice !== undefined ? money(fiscalUnitPrice) : '-'}</dd>
+              <dt>Valor total / líquido</dt><dd>{fiscalTotal !== undefined ? money(fiscalTotal) : '-'}</dd>
+            </dl>
+          )}
           <p style={{ marginTop: '1rem', color: '#526052' }}>Caixas derivadas: {(order.fiscalBoxQuantity || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Cotação da caixa: {money(order.fiscalBoxQuote || 0)}.</p>
         </section>
       )}
@@ -321,15 +340,16 @@ export default function SaleDetailPage() {
               return unit;
             };
 
+            const fiscalItem = hasFiscalData && item.productId?.name?.toLowerCase().includes('cenoura');
             return (
               <div className={`items-row ${isResale ? 'compra-venda-detail-row' : 'detail-items-row'}`} key={index}>
                 <strong>{item.productId?.name ?? '-'}</strong>
-                <span>{item.quantityBags} {getUnitSuffix(item.productId)}</span>
-                <span>{formatKg(item.bagWeightKg)}</span>
-                <span>{formatKg(item.quantityKg)}</span>
+                <span>{fiscalItem && fiscalBoxes !== undefined ? `${fiscalBoxes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cx` : `${item.quantityBags} ${getUnitSuffix(item.productId)}`}</span>
+                <span>{fiscalItem ? '29 kg' : formatKg(item.bagWeightKg)}</span>
+                <span>{fiscalItem && fiscalWeight !== undefined ? formatKg(fiscalWeight) : formatKg(item.quantityKg)}</span>
                 {isResale && <span>{money(item.costPerBag ?? 0)}</span>}
-                <span>{money(item.pricePerBag)}</span>
-                <span>{money(item.lineTotal)}</span>
+                <span>{fiscalItem && fiscalUnitPrice !== undefined ? money(fiscalUnitPrice) : money(item.pricePerBag)}</span>
+                <span>{fiscalItem && fiscalTotal !== undefined ? money(fiscalTotal) : money(item.lineTotal)}</span>
               </div>
             );
           })}
@@ -339,9 +359,9 @@ export default function SaleDetailPage() {
       <section className="panel form-section">
         <h2>Resumo Financeiro</h2>
         <dl>
-          <dt>Total em kg</dt><dd>{formatKg(order.totalKg ?? 0)}</dd>
+          <dt>Total em kg</dt><dd>{fiscalWeight !== undefined ? formatKg(fiscalWeight) : '-'}</dd>
           <dt>{isResale ? 'Valor total da Venda' : 'Total Particular'}</dt>
-          <dd>{money(order.totalParticularAmount ?? 0)}</dd>
+          <dd>{fiscalTotal !== undefined ? money(fiscalTotal) : '-'}</dd>
           {isResale && (
             <>
               <dt>Custo total de Compra</dt>
@@ -350,11 +370,11 @@ export default function SaleDetailPage() {
               <dd>{money((order.totalParticularAmount ?? 0) - (order.totalCostAmount ?? 0))}</dd>
             </>
           )}
-          <dt>FUNRURAL 1,63%</dt><dd>{money(order.funruralRetentionAmount ?? 0)}</dd>
+          <dt>FUNRURAL 1,63%</dt><dd>{fiscalTotal !== undefined ? money(fiscalTotal * 0.0163) : '-'}</dd>
           <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>Previdência Social 1,30%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralSocialSecurityAmount ?? 0)}</dd>
           <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>RAT 0,10%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralRatAmount ?? 0)}</dd>
           <dt style={{ paddingLeft: '1.5rem', color: '#777', fontSize: '0.9em' }}>SENAR 0,23%</dt><dd style={{ color: '#777', fontSize: '0.9em' }}>{money(order.funruralSenarAmount ?? 0)}</dd>
-          <dt>Total a Receber</dt><dd>{money(order.totalReceivableAmount ?? 0)}</dd>
+          <dt>Total a Receber</dt><dd>{fiscalTotal !== undefined ? money(fiscalTotal) : '-'}</dd>
           {isResale && (
             <>
               <dt>Líquido ao Produtor</dt>

@@ -129,10 +129,10 @@ export class SalesOrdersService {
           : filteredOrders;
 
         const ids = paginatedOrders.map((o) => o._id);
-        const docs = await this.fiscalModel.find({ 
-          salesOrderId: { $in: ids }, 
-          isDeleted: false, 
-          status: { $ne: 'cancelled' } 
+        const docs = await this.fiscalModel.find({
+          salesOrderId: { $in: ids },
+          $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
+          status: { $ne: 'cancelled' },
         }).lean();
         
         const amountMap = new Map();
@@ -191,8 +191,30 @@ export class SalesOrdersService {
     if (!order) {
       throw new NotFoundException('Venda nao encontrada.');
     }
-    const fiscalDocuments = await this.fiscalModel.find({ salesOrderId: new Types.ObjectId(id), isDeleted: false, status: { $ne: 'cancelled' } }).lean();
-    return { ...order, fiscalDocuments };
+    const fiscalDocuments = await this.fiscalModel.find({
+      salesOrderId: new Types.ObjectId(id),
+      $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
+      status: { $ne: 'cancelled' },
+    }).lean();
+    const fiscalWeightKg = fiscalDocuments.reduce((sum: number, doc: any) => sum + (doc.totalWeightKg || 0), 0);
+    const fiscalTotalAmount = fiscalDocuments.reduce((sum: number, doc: any) => sum + (doc.amount || 0), 0);
+    const fiscalUnitPrice = fiscalDocuments.find((doc: any) => doc.unitPrice !== undefined)?.unitPrice;
+    const fiscalDocumentNumber = fiscalDocuments.map((doc: any) => doc.number).filter(Boolean).join(', ');
+    const resolvedWeight = fiscalWeightKg || (order as any).fiscalWeightKg || 0;
+    const resolvedTotal = fiscalTotalAmount || (order as any).fiscalTotalAmount || 0;
+    const resolvedUnitPrice = fiscalUnitPrice ?? (order as any).fiscalUnitPrice;
+    return {
+      ...order,
+      fiscalDocuments,
+      fiscalDocumentNumber: fiscalDocumentNumber || (order as any).fiscalDocumentNumber || null,
+      fiscalDocumentAmount: resolvedTotal,
+      fiscalWeightKg: resolvedWeight,
+      fiscalUnitPrice: resolvedUnitPrice,
+      fiscalTotalAmount: resolvedTotal,
+      fiscalBoxQuantity: resolvedWeight / 29,
+      fiscalBoxQuote: resolvedUnitPrice === undefined ? undefined : resolvedWeight * resolvedUnitPrice,
+      fiscalValueSource: fiscalDocuments.length || resolvedTotal > 0 ? 'fiscal_document' : (order as any).fiscalValueSource,
+    };
   }
 
   async generateNextOrderNumber(): Promise<string> {

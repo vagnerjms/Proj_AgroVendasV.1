@@ -127,13 +127,37 @@ export class SalesOrdersService {
           : filteredOrders;
 
         const ids = paginatedOrders.map((o) => o._id);
-        const docs = await this.fiscalModel.find({ salesOrderId: { $in: ids } }).lean();
-        const docMap = new Map(docs.map((d) => [d.salesOrderId?.toString(), d.amount || 0]));
+        const docs = await this.fiscalModel.find({ 
+          salesOrderId: { $in: ids }, 
+          isDeleted: false, 
+          status: { $ne: 'cancelled' } 
+        }).lean();
         
-        const data = paginatedOrders.map((o) => ({
-          ...o,
-          fiscalDocumentAmount: docMap.get(o._id.toString()) || 0,
-        }));
+        const amountMap = new Map();
+        const numberMap = new Map();
+        
+        for (const doc of docs) {
+          const sId = doc.salesOrderId?.toString();
+          if (!sId) continue;
+          amountMap.set(sId, (amountMap.get(sId) || 0) + (doc.amount || 0));
+          if (doc.number) {
+            const list = numberMap.get(sId) || [];
+            if (!list.includes(doc.number)) {
+              list.push(doc.number);
+            }
+            numberMap.set(sId, list);
+          }
+        }
+        
+        const data = paginatedOrders.map((o) => {
+          const sId = o._id.toString();
+          const numbers = numberMap.get(sId) || [];
+          return {
+            ...o,
+            fiscalDocumentAmount: amountMap.get(sId) || 0,
+            fiscalDocumentNumber: numbers.join(', ') || null,
+          };
+        });
 
         if (pageNum) {
           return { data, total, page: pageNum, limit: limitNum };

@@ -11,6 +11,7 @@ type SalesOrder = {
   date: string;
   status: string;
   totalBags: number;
+  totalKg?: number;
   totalParticularAmount: number;
   totalReceivableAmount: number;
   customerId?: { name?: string };
@@ -18,6 +19,7 @@ type SalesOrder = {
   saleType?: string;
   items?: { productId?: { name?: string } }[];
   fiscalDocumentAmount?: number;
+  fiscalDocumentNumber?: string;
 };
 
 const emptyFilters = {
@@ -213,12 +215,14 @@ export default function SalesListPage() {
             <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('bags')}>
               Sacos {sortBy === 'bags' && (sortOrder === 'asc' ? '▲' : '▼')}
             </span>
+            <span>Peso (kg)</span>
             <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('total')}>
               Total {sortBy === 'total' && (sortOrder === 'asc' ? '▲' : '▼')}
             </span>
             <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('receivable')}>
               Líquido {sortBy === 'receivable' && (sortOrder === 'asc' ? '▲' : '▼')}
             </span>
+            <span>NF</span>
             <span>Valor NF</span>
             <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('status')}>
               Status {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
@@ -251,8 +255,10 @@ export default function SalesListPage() {
               <span>{order.customerId?.name ?? '-'}</span>
               <span>{order.producerId?.name ?? '-'}</span>
               <span>{order.totalBags ?? 0}</span>
+              <span>{order.totalKg ? order.totalKg.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg' : '-'}</span>
               <span>{money(order.totalParticularAmount ?? 0)}</span>
               <span>{money(order.totalReceivableAmount ?? 0)}</span>
+              <span>{order.fiscalDocumentNumber ?? '-'}</span>
               <span>{order.fiscalDocumentAmount ? money(order.fiscalDocumentAmount) : '-'}</span>
               <span>{statusLabel(order.status)}</span>
             </div>

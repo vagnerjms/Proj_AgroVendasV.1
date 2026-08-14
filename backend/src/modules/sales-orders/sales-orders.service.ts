@@ -135,11 +135,19 @@ export class SalesOrdersService {
         
         const amountMap = new Map();
         const numberMap = new Map();
+        const fiscalMap = new Map<string, any>();
         
         for (const doc of docs) {
           const sId = doc.salesOrderId?.toString();
           if (!sId) continue;
           amountMap.set(sId, (amountMap.get(sId) || 0) + (doc.amount || 0));
+          const current = fiscalMap.get(sId) || {};
+          current.weightKg = (current.weightKg || 0) + ((doc as any).totalWeightKg || 0);
+          current.unitPrice = current.unitPrice ?? (doc as any).unitPrice;
+          current.totalAmount = (current.totalAmount || 0) + ((doc as any).amount || 0);
+          current.boxQuote = current.unitPrice === undefined ? undefined : current.unitPrice * 29;
+          current.boxQuantity = current.weightKg / 29;
+          fiscalMap.set(sId, current);
           if (doc.number) {
             const list = numberMap.get(sId) || [];
             if (!list.includes(doc.number)) {
@@ -156,6 +164,12 @@ export class SalesOrdersService {
             ...o,
             fiscalDocumentAmount: amountMap.get(sId) || 0,
             fiscalDocumentNumber: numbers.join(', ') || null,
+            fiscalWeightKg: fiscalMap.get(sId)?.weightKg || o.fiscalWeightKg || 0,
+            fiscalUnitPrice: fiscalMap.get(sId)?.unitPrice ?? o.fiscalUnitPrice,
+            fiscalTotalAmount: fiscalMap.get(sId)?.totalAmount || o.fiscalTotalAmount || 0,
+            fiscalBoxQuote: fiscalMap.get(sId)?.boxQuote ?? o.fiscalBoxQuote,
+            fiscalBoxQuantity: fiscalMap.get(sId)?.boxQuantity ?? o.fiscalBoxQuantity,
+            fiscalValueSource: fiscalMap.has(sId) ? 'fiscal_document' : o.fiscalValueSource,
           };
         });
 
@@ -175,7 +189,8 @@ export class SalesOrdersService {
     if (!order) {
       throw new NotFoundException('Venda nao encontrada.');
     }
-    return order;
+    const fiscalDocuments = await this.fiscalModel.find({ salesOrderId: new Types.ObjectId(id), isDeleted: false, status: { $ne: 'cancelled' } }).lean();
+    return { ...order, fiscalDocuments };
   }
 
   async generateNextOrderNumber(): Promise<string> {
@@ -325,14 +340,29 @@ export class SalesOrdersService {
     if (!existing) return;
 
     const fiscalDocs = await this.fiscalModel.find({ salesOrderId: new Types.ObjectId(id), isDeleted: false, status: { $ne: 'cancelled' } }).lean();
-    const nfeTotalAmount = fiscalDocs.reduce((sum, doc) => sum + (doc.amount || 0), 0);
+    const fiscalItems = fiscalDocs.flatMap((doc: any) => doc.items || []);
+    const fiscalWeightKg = fiscalDocs.reduce((sum, doc: any) => sum + (doc.totalWeightKg || 0), 0);
+    const fiscalTotalAmount = fiscalDocs.reduce((sum, doc: any) => sum + (doc.amount || 0), 0);
+    const fiscalUnitPrice = fiscalDocs.find((doc: any) => doc.unitPrice !== undefined)?.unitPrice;
+    const fiscalBoxQuantity = fiscalWeightKg / 29;
+    const fiscalBoxQuote = fiscalUnitPrice === undefined ? undefined : fiscalUnitPrice * 29;
 
-    const merged = { ...existing.toObject(), nfeTotalAmount } as unknown as CalculateSalesOrderDto;
+    const merged = { ...existing.toObject() } as unknown as CalculateSalesOrderDto;
     const calculation = this.calculationService.calculate(merged);
 
     const updated = await this.salesOrderModel.findByIdAndUpdate(
       id,
-      { ...calculation },
+      {
+        ...calculation,
+        ...(fiscalItems.length || fiscalTotalAmount > 0 ? {
+          fiscalWeightKg,
+          fiscalUnitPrice,
+          fiscalTotalAmount,
+          fiscalBoxQuantity,
+          fiscalBoxQuote,
+          fiscalValueSource: 'fiscal_document',
+        } : { fiscalValueSource: 'commercial_order' }),
+      },
       { new: true }
     ).lean();
 

@@ -185,6 +185,12 @@ export class DashboardService {
 
       const nfeValue = saleDocs.reduce((sum, f) => sum + (f.amount || 0), 0);
       const nfeNumbers = saleDocs.map(f => f.number).filter(Boolean).join(', ');
+      const fiscalWeightKg = saleDocs.reduce((sum, f: any) => sum + (f.totalWeightKg || 0), 0) || sale.fiscalWeightKg || 0;
+      const fiscalUnitPrice = saleDocs.find((f: any) => f.unitPrice !== undefined)?.unitPrice ?? sale.fiscalUnitPrice;
+      const fiscalTotalAmount = nfeValue || sale.fiscalTotalAmount || 0;
+      const fiscalBoxQuantity = fiscalWeightKg / 29;
+      const fiscalBoxQuote = fiscalUnitPrice === undefined ? 0 : fiscalUnitPrice * 29;
+      const fiscalSource = saleDocs.length && (fiscalWeightKg || fiscalTotalAmount) ? 'fiscal_document' : 'commercial_order';
 
       return {
         ...sale,
@@ -198,6 +204,17 @@ export class DashboardService {
         saldoProdutor: this.roundMoney(saldoProdutor),
         nfeValue: this.roundMoney(nfeValue),
         nfeNumbers: nfeNumbers || '-',
+        fiscalWeightKg,
+        fiscalUnitPrice,
+        fiscalTotalAmount,
+        fiscalBoxQuantity,
+        fiscalBoxQuote: this.roundMoney(fiscalBoxQuote),
+        fiscalSource,
+        fiscalDecimalPlaces: {
+          weight: saleDocs.find((f: any) => f.weightDecimalPlaces !== undefined)?.weightDecimalPlaces,
+          unitPrice: saleDocs.find((f: any) => f.unitPriceDecimalPlaces !== undefined)?.unitPriceDecimalPlaces,
+          amount: saleDocs.find((f: any) => f.amountDecimalPlaces !== undefined)?.amountDecimalPlaces,
+        },
       };
     });
 

@@ -10,6 +10,7 @@ import { UpdateFiscalDocumentDto } from './dto/update-fiscal-document.dto';
 import { FiscalDocument, FiscalFileKind } from './schemas/fiscal-document.schema';
 import { SalesOrdersService } from '../sales-orders/sales-orders.service';
 import { PurchaseOrdersService } from '../purchase-orders/purchase-orders.service';
+import { FiscalDocumentExtractionService } from './fiscal-document-extraction.service';
 
 type FiscalFilters = {
   orderNumber?: string;
@@ -34,6 +35,7 @@ export class FiscalDocumentsService {
     @InjectModel(PurchaseOrder.name) private readonly purchaseOrderModel: Model<PurchaseOrder>,
     private readonly salesOrdersService: SalesOrdersService,
     private readonly purchaseOrdersService: PurchaseOrdersService,
+    private readonly extractionService: FiscalDocumentExtractionService,
   ) {}
 
   static ensureTempStorage() {
@@ -245,6 +247,34 @@ export class FiscalDocumentsService {
 
     fiscalDocument.files.push(fileEntry);
     const saved = await fiscalDocument.save();
+
+    try {
+      const extracted = this.extractionService.extract(targetPath, file.originalname);
+      await this.fiscalDocumentModel.updateOne({ _id: fiscalDocument._id }, {
+        $set: {
+          items: extracted.items,
+          number: extracted.number || fiscalDocument.number,
+          accessKey: extracted.accessKey || fiscalDocument.accessKey,
+          amount: extracted.amount,
+          amountRaw: extracted.amountRaw,
+          unitPrice: extracted.unitPrice,
+          unitPriceRaw: extracted.unitPriceRaw,
+          totalWeightKg: extracted.totalWeightKg,
+          weightDecimalPlaces: extracted.weightDecimalPlaces,
+          unitPriceDecimalPlaces: extracted.unitPriceDecimalPlaces,
+          amountDecimalPlaces: extracted.amountDecimalPlaces,
+          extractionMethod: extracted.method,
+          extractionConfidence: extracted.confidence,
+          extractionError: undefined,
+          status: extracted.amount !== undefined ? 'issued' : 'divergent',
+        },
+      });
+      if (fiscalDocument.salesOrderId) await this.salesOrdersService.recalculateFinancials(fiscalDocument.salesOrderId.toString());
+    } catch (error: any) {
+      await this.fiscalDocumentModel.updateOne({ _id: fiscalDocument._id }, {
+        $set: { extractionMethod: 'none', extractionConfidence: 0, extractionError: error?.message || 'Falha na extração fiscal', status: 'divergent' },
+      });
+    }
 
     // Disparar Webhook para n8n em segundo plano
     const newFile = saved.files[saved.files.length - 1];

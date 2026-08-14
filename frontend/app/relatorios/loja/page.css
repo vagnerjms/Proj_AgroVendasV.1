@@ -95,6 +95,11 @@
   font-size: 0.85rem;
 }
 
+@media print {
+  .store-report-group { break-after: page; page-break-after: always; }
+  .store-report-group:last-child { break-after: auto; page-break-after: auto; }
+}
+
 .loja-table th, .loja-table td {
   border: 1px solid #cfd8dc;
   padding: 0.5rem;

@@ -3,8 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
 import { basename, extname, join } from 'path';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { PurchaseOrder } from '../purchase-orders/schemas/purchase-order.schema';
-import { SalesOrder } from '../sales-orders/schemas/sales-order.schema';
+import { PurchaseOrder, PurchaseOrderDocument } from '../purchase-orders/schemas/purchase-order.schema';
+import { SalesOrder, SalesOrderDocument } from '../sales-orders/schemas/sales-order.schema';
 import { CreateFiscalDocumentDto } from './dto/create-fiscal-document.dto';
 import { UpdateFiscalDocumentDto } from './dto/update-fiscal-document.dto';
 import { FiscalDocument, FiscalFileKind } from './schemas/fiscal-document.schema';
@@ -30,8 +30,8 @@ const TEMP_STORAGE = join(process.cwd(), 'storage', 'tmp', 'fiscal-documents');
 export class FiscalDocumentsService {
   constructor(
     @InjectModel(FiscalDocument.name) private readonly fiscalDocumentModel: Model<FiscalDocument>,
-    @InjectModel(SalesOrder.name) private readonly salesOrderModel: Model<SalesOrder>,
-    @InjectModel(PurchaseOrder.name) private readonly purchaseOrderModel: Model<PurchaseOrder>,
+    @InjectModel(SalesOrder.name) private readonly salesOrderModel: Model<SalesOrderDocument>,
+    @InjectModel(PurchaseOrder.name) private readonly purchaseOrderModel: Model<PurchaseOrderDocument>,
     private readonly salesOrdersService: SalesOrdersService,
     private readonly purchaseOrdersService: PurchaseOrdersService,
   ) {}

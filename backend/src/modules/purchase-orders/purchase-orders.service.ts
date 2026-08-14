@@ -19,12 +19,22 @@ export class PurchaseOrdersService {
 
   async create(createDto: CreatePurchaseOrderDto) {
     const items = (createDto.items || []).map(item => {
-      const quantityKg = item.quantityKg !== undefined && item.quantityKg !== null && item.quantityKg !== 0
+      const bagWeightKg = item.bagWeightKg || 25;
+      let quantityBags = item.quantityBags || 0;
+      let quantityKg = item.quantityKg !== undefined && item.quantityKg !== null && item.quantityKg !== 0
         ? this.roundQuantity(item.quantityKg)
-        : this.roundQuantity((item.quantityBags || 0) * (item.bagWeightKg || 25));
-      const lineTotal = this.roundMoney((item.quantityBags || 0) * (item.costPerBag || 0));
+        : 0;
+
+      if (quantityBags === 0 && quantityKg > 0) {
+        quantityBags = this.roundQuantity(quantityKg / bagWeightKg);
+      } else if (quantityBags > 0 && quantityKg === 0) {
+        quantityKg = this.roundQuantity(quantityBags * bagWeightKg);
+      }
+
+      const lineTotal = this.roundMoney(quantityBags * (item.costPerBag || 0));
       return {
         ...item,
+        quantityBags,
         quantityKg,
         lineTotal,
       };

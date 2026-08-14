@@ -35,9 +35,18 @@ export class PurchaseOrdersController {
   calculate(@Body() input: any) {
     // Simply proxy to service if we had one, or calculate here
     const items = (input.items || []).map((item: any) => {
-      const quantityKg = Math.round((item.quantityBags || 0) * (item.bagWeightKg || 25) * 1000) / 1000;
-      const lineTotal = Math.round((item.quantityBags || 0) * (item.costPerBag || 0) * 100) / 100;
-      return { ...item, quantityKg, lineTotal };
+      const bagWeightKg = item.bagWeightKg || 25;
+      let quantityBags = item.quantityBags || 0;
+      let quantityKg = item.quantityKg !== undefined && item.quantityKg !== null && item.quantityKg !== 0 ? item.quantityKg : 0;
+      
+      if (quantityBags === 0 && quantityKg > 0) {
+        quantityBags = Math.round((quantityKg / bagWeightKg) * 1000) / 1000;
+      } else if (quantityBags > 0 && quantityKg === 0) {
+        quantityKg = Math.round(quantityBags * bagWeightKg * 1000) / 1000;
+      }
+
+      const lineTotal = Math.round(quantityBags * (item.costPerBag || 0) * 100) / 100;
+      return { ...item, quantityBags, quantityKg, lineTotal };
     });
 
     const totalBags = items.reduce((acc: number, item: any) => acc + item.quantityBags, 0);

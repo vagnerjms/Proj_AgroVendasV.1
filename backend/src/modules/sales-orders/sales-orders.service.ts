@@ -386,9 +386,9 @@ export class SalesOrdersService {
     if (!dto.paymentType) missingFields.push('paymentType');
     if (!dto.items?.length) missingFields.push('items');
 
-    const hasSaleValue = dto.items?.some((item) => item.quantityBags > 0 && item.pricePerBag > 0);
+    const hasSaleValue = dto.items?.some((item) => (item.quantityBags > 0 || (item.quantityKg && item.quantityKg > 0)) && item.pricePerBag > 0);
     if (!hasSaleValue) {
-      missingFields.push('items com quantidade e valor');
+      missingFields.push('items com quantidade ou peso total e valor');
     }
 
     if (missingFields.length) {

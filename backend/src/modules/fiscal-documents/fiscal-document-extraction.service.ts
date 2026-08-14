@@ -24,6 +24,7 @@ export type ExtractedFiscalData = {
   unitPrice?: number;
   unitPriceRaw?: string;
   totalWeightKg?: number;
+  totalWeightRaw?: string;
   weightDecimalPlaces?: number;
   unitPriceDecimalPlaces?: number;
   amountDecimalPlaces?: number;
@@ -63,7 +64,8 @@ export class FiscalDocumentExtractionService {
     }));
     const amountRaw = this.tag(xml, 'vNF');
     const accessKey = xml.match(/Id="NFe(\d{44})"/i)?.[1];
-    return this.aggregate(items, 'xml', 1, this.tag(xml, 'nNF'), accessKey, amountRaw);
+    const totalWeightRaw = this.tag(xml, 'pesoL') || this.tag(xml, 'pesoB');
+    return this.aggregate(items, 'xml', 1, this.tag(xml, 'nNF'), accessKey, amountRaw, totalWeightRaw);
   }
 
   private extractText(text: string, method: 'ocr'): ExtractedFiscalData {
@@ -75,15 +77,15 @@ export class FiscalDocumentExtractionService {
       quantityKg: this.number(weightRaw), unitPrice: this.number(unitPriceRaw), totalAmount: this.number(amountRaw),
       quantityKgDecimalPlaces: this.places(weightRaw), unitPriceDecimalPlaces: this.places(unitPriceRaw), totalAmountDecimalPlaces: this.places(amountRaw),
     };
-    return this.aggregate([item], method, 0.6, this.findValue(text, /(n[úu]mero\s+da\s+nota|NF)[^\d]*(\d+)/i), undefined, amountRaw);
+    return this.aggregate([item], method, 0.6, this.findValue(text, /(n[úu]mero\s+da\s+nota|NF)[^\d]*(\d+)/i), undefined, amountRaw, weightRaw);
   }
 
-  private aggregate(items: ExtractedFiscalItem[], method: 'xml' | 'ocr', confidence: number, number?: string, accessKey?: string, amountRaw?: string): ExtractedFiscalData {
+  private aggregate(items: ExtractedFiscalItem[], method: 'xml' | 'ocr', confidence: number, number?: string, accessKey?: string, amountRaw?: string, totalWeightRaw?: string): ExtractedFiscalData {
     const valid = items.filter((i) => i.quantityKg !== undefined || i.totalAmount !== undefined);
-    const totalWeightKg = valid.reduce((sum, i) => sum + (i.quantityKg || 0), 0);
+    const totalWeightKg = this.number(totalWeightRaw) ?? valid.reduce((sum, i) => sum + (i.quantityKg || 0), 0);
     const amount = this.number(amountRaw) ?? valid.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
     const first = valid.find((i) => i.unitPrice !== undefined);
-    return { items, number, accessKey, amount, amountRaw, unitPrice: first?.unitPrice, unitPriceRaw: first?.unitPriceRaw, totalWeightKg, weightDecimalPlaces: Math.max(...items.map(i => i.quantityKgDecimalPlaces || 0), 0), unitPriceDecimalPlaces: first?.unitPriceDecimalPlaces, amountDecimalPlaces: this.places(amountRaw), method, confidence };
+    return { items, number, accessKey, amount, amountRaw, unitPrice: first?.unitPrice, unitPriceRaw: first?.unitPriceRaw, totalWeightKg, totalWeightRaw, weightDecimalPlaces: this.places(totalWeightRaw) ?? Math.max(...items.map(i => i.quantityKgDecimalPlaces || 0), 0), unitPriceDecimalPlaces: first?.unitPriceDecimalPlaces, amountDecimalPlaces: this.places(amountRaw), method, confidence };
   }
 
   private tag(source: string, name: string) { return source.match(new RegExp(`<${name}[^>]*>([^<]+)</${name}>`, 'i'))?.[1]?.trim(); }

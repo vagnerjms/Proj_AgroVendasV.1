@@ -42,6 +42,7 @@ type SalesOrder = {
   customerId?: { name?: string; city?: string; state?: string };
   producerId?: { name?: string; city?: string; state?: string };
   attachments?: string[];
+  orderEvidenceAttachments?: string[];
   fiscalDocuments?: Array<{ number?: string; accessKey?: string; amount?: number; totalWeightKg?: number; unitPrice?: number; extractionMethod?: string; extractionConfidence?: number; extractionError?: string }>;
   fiscalWeightKg?: number;
   fiscalUnitPrice?: number;
@@ -97,6 +98,25 @@ export default function SaleDetailPage() {
     } catch (err) {
       alert('Não foi possível excluir o arquivo.');
     }
+  }
+
+  async function downloadEvidence(docId: string, filename: string) {
+    const response = await authFetch(`/sales-orders/${docId}/evidence/${filename}`);
+    if (!response.ok) return alert('Não foi possível baixar a evidência.');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  async function deleteEvidence(docId: string, filename: string) {
+    if (!window.confirm('Excluir a evidência da comanda?')) return;
+    const response = await authFetch(`/sales-orders/${docId}/evidence/${filename}`, { method: 'DELETE' });
+    if (!response.ok) return alert('Não foi possível excluir a evidência.');
+    setOrder((prev) => prev ? { ...prev, orderEvidenceAttachments: prev.orderEvidenceAttachments?.filter((file) => file !== filename) } : prev);
   }
 
   useEffect(() => {
@@ -222,7 +242,7 @@ export default function SaleDetailPage() {
           </dl>
         </article>
 
-        {(order.notes || (order.attachments && order.attachments.length > 0)) && (
+        {(order.notes || (order.attachments && order.attachments.length > 0) || (order.orderEvidenceAttachments && order.orderEvidenceAttachments.length > 0)) && (
           <article className="panel form-section" style={{ gridColumn: '1 / -1' }}>
             <h2>Observações e Anexos</h2>
             <div style={{ marginTop: '10px' }}>
@@ -252,6 +272,22 @@ export default function SaleDetailPage() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+              {order.orderEvidenceAttachments && order.orderEvidenceAttachments.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <strong>Pedidos/comandas (evidência da venda):</strong>
+                  <ul style={{ listStyleType: 'none', padding: 0, marginTop: '8px' }}>
+                    {order.orderEvidenceAttachments.map((file) => (
+                      <li key={file} style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button type="button" onClick={() => downloadEvidence(order._id, file)} style={{ background: 'none', border: 'none', color: '#256029', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}>
+                          {file.split('-').slice(1).join('-') || file}
+                        </button>
+                        <button type="button" onClick={() => deleteEvidence(order._id, file)} style={{ background: 'none', border: 'none', color: '#e53e3e', cursor: 'pointer' }}>Excluir</button>
+                      </li>
+                    ))}
+                  </ul>
+                  <p style={{ color: '#667085', fontSize: '13px' }}>Vinculado ao pedido {order.orderNumber}; não altera os dados da NF nem os cálculos.</p>
                 </div>
               )}
             </div>

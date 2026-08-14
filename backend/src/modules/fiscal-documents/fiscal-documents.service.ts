@@ -413,6 +413,7 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
           unitPrice: extracted.unitPrice,
           unitPriceRaw: extracted.unitPriceRaw,
           totalWeightKg: extracted.totalWeightKg,
+          totalWeightRaw: extracted.totalWeightRaw,
           weightDecimalPlaces: extracted.weightDecimalPlaces,
           unitPriceDecimalPlaces: extracted.unitPriceDecimalPlaces,
           amountDecimalPlaces: extracted.amountDecimalPlaces,

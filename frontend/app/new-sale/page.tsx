@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { toast } from 'react-toastify';
 import { apiGet, apiPost, authFetch } from '../../lib/api';
@@ -17,6 +17,22 @@ type SaleItem = {
   pricePerBag: number;
   costPerBag: number;
   quantityKg?: number;
+  nfeUnitPrice?: number;
+  nfeTotalAmount?: number;
+  nfeWeightRaw?: string;
+};
+
+type NfPreview = {
+  amount?: number;
+  totalWeightKg?: number;
+  totalWeightRaw?: string;
+  unitPrice?: number;
+  amountRaw?: string;
+  unitPriceRaw?: string;
+  weightDecimalPlaces?: number;
+  unitPriceDecimalPlaces?: number;
+  method: string;
+  confidence: number;
 };
 
 type CalculationItem = Omit<SaleItem, 'id'> & {
@@ -75,7 +91,7 @@ export default function NewSalePage() {
   const [originLocation, setOriginLocation] = useState('');
   const [destinationCity, setDestinationCity] = useState('');
   const [destinationState, setDestinationState] = useState('');
-  const [saleType, setSaleType] = useState<'particular' | 'compra_venda' | 'intermediacao' | 'venda_estoque'>('compra_venda');
+  const [saleType, setSaleType] = useState<'particular' | 'compra_venda' | 'intermediacao' | 'venda_estoque'>('intermediacao');
   const [brokerageFeeType, setBrokerageFeeType] = useState<'fixed' | 'percentage'>('percentage');
   const [brokerageFeeValue, setBrokerageFeeValue] = useState<number>(0);
   const [brokeragePayer, setBrokeragePayer] = useState<'producer' | 'customer' | 'both'>('producer');
@@ -87,6 +103,7 @@ export default function NewSalePage() {
 
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [items, setItems] = useState<SaleItem[]>([{
     id: Date.now().toString(),
     productId: '',
@@ -98,6 +115,8 @@ export default function NewSalePage() {
   
   const [calculation, setCalculation] = useState<Calculation | null>(null);
   const [message, setMessage] = useState('');
+  const [nfPreview, setNfPreview] = useState<NfPreview | null>(null);
+  const [readingNf, setReadingNf] = useState(false);
 
   useEffect(() => {
     void Promise.all([
@@ -136,6 +155,8 @@ export default function NewSalePage() {
   const termDays = paymentOption === 'custom' ? customTermDays : selectedPayment.days ?? 0;
   const paymentType = termDays > 0 || paymentOption === 'custom' ? 'term' : 'cash';
   const dueDate = paymentOption === 'custom' ? customDueDate : addDays(date, termDays);
+  const nfCalculatedTotal = nfPreview && items[0] ? (items[0].quantityKg || 0) * (items[0].nfeUnitPrice || 0) : undefined;
+  const nfHasDivergence = nfPreview?.amount !== undefined && nfCalculatedTotal !== undefined && Math.abs(nfCalculatedTotal - nfPreview.amount) > 0.01;
 
   function addItem() {
     setItems(current => [...current, {
@@ -170,12 +191,70 @@ export default function NewSalePage() {
     );
   }
 
+  async function handleNfSelection(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!/\.(pdf|xml)$/i.test(file.name)) {
+      toast.error('Anexe somente a NF em PDF ou XML.');
+      event.target.value = '';
+      return;
+    }
+    setFiles([file]);
+    setReadingNf(true);
+    setMessage('Lendo os dados da NF...');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await authFetch('/sales-orders/preview-nf', { method: 'POST', body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || 'Não foi possível ler a NF.');
+      setNfPreview(data);
+      const carrot = products.find((product: any) => String(product.name).toLowerCase().includes('cenoura'));
+      const weight = Number(data.totalWeightKg || 0);
+      const unitPrice = Number(data.unitPrice || 0);
+      const quantityBoxes = weight / 29;
+      setItems((current) => [{
+        ...current[0],
+        productId: carrot?._id || current[0]?.productId || '',
+        quantityKg: weight,
+        nfeWeightRaw: data.totalWeightRaw,
+        quantityBags: quantityBoxes,
+        bagWeightKg: 29,
+        pricePerBag: unitPrice * 29,
+        nfeUnitPrice: unitPrice,
+        nfeTotalAmount: data.amount,
+      }, ...current.slice(1)]);
+      setMessage('NF lida. Peso, caixas, valor unitário, cotação e total foram preenchidos automaticamente.');
+    } catch (error) {
+      setNfPreview(null);
+      setMessage(error instanceof Error ? error.message : 'Erro ao ler a NF.');
+    } finally {
+      setReadingNf(false);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (items.some(item => !item.productId)) {
       toast.error('Selecione o produto para todos os itens.');
       return;
+    }
+
+    if (nfPreview) {
+      const item = items[0];
+      const product = products.find((entry: any) => entry._id === item.productId);
+      if (!product || !String(product.name).toLowerCase().includes('cenoura')) {
+        setMessage('A importação automática de peso/caixas por 29 kg está disponível somente para o produto Cenoura.');
+        toast.error('Selecione o produto Cenoura para esta NF.');
+        return;
+      }
+      const calculatedTotal = (item.quantityKg || 0) * (item.nfeUnitPrice || 0);
+      if (nfPreview.amount !== undefined && Math.abs(calculatedTotal - nfPreview.amount) > 0.01) {
+        setMessage(`Divergência na NF: peso × valor unitário = ${money(calculatedTotal)}, mas o total da NF é ${money(nfPreview.amount)}.`);
+        toast.error('Corrija a divergência da NF antes de confirmar.');
+        return;
+      }
     }
 
     try {
@@ -217,6 +296,13 @@ export default function NewSalePage() {
             toast.error(`Erro ao anexar arquivo: ${file.name}`);
           }
         }
+      }
+
+      for (const file of evidenceFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await authFetch(`/sales-orders/${created._id}/evidence`, { method: 'POST', body: formData });
+        if (!response.ok) toast.error(`Erro ao anexar a comanda: ${file.name}`);
       }
 
       toast.success(`Venda ${created.orderNumber} confirmada com sucesso.`);
@@ -293,15 +379,20 @@ export default function NewSalePage() {
                   <span>Observacoes</span>
                   <label style={{ cursor: 'pointer', fontSize: '13px', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                    {files.length > 0 ? `${files.length} selecionado(s)` : 'Anexar Arquivo'}
-                    <input type="file" style={{ display: 'none' }} multiple onChange={(e) => {
-                      if (e.target.files) {
-                        setFiles(Array.from(e.target.files));
-                      }
-                    }} />
+                    {readingNf ? 'Lendo NF...' : files.length > 0 ? `${files.length} selecionado(s)` : 'Anexar NF (PDF/XML)'}
+                    <input type="file" accept=".pdf,.xml,application/pdf,application/xml,text/xml" style={{ display: 'none' }} onChange={handleNfSelection} />
                   </label>
                 </div>
                 <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+                {message && <p style={{ marginTop: '0.75rem', color: message.toLowerCase().includes('diverg') || message.toLowerCase().includes('erro') ? '#b42318' : '#256029' }}>{message}</p>}
+                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <strong>Pedido/comanda (evidência)</strong>
+                  <label style={{ cursor: 'pointer', color: '#256029' }}>
+                    {evidenceFiles.length > 0 ? `${evidenceFiles.length} arquivo(s) selecionado(s)` : 'Anexar comanda'}
+                    <input type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" multiple style={{ display: 'none' }} onChange={(event) => setEvidenceFiles(event.target.files ? Array.from(event.target.files) : [])} />
+                  </label>
+                </div>
+                <small style={{ color: '#667085' }}>Uso exclusivo como evidência da venda. Não participa dos cálculos nem da leitura da NF.</small>
               </label>
             </div>
           </section>
@@ -380,13 +471,14 @@ export default function NewSalePage() {
               <button type="button" onClick={addItem} className="btn outline" style={{ fontSize: '13px' }}>+ Adicionar Produto</button>
             </div>
             <div className="items-table" style={{ marginTop: '1rem' }}>
-              <div className={`items-row items-head`} style={{ gridTemplateColumns: saleType === 'compra_venda' ? '2fr 1.2fr 1fr 1.5fr 1.5fr 1.5fr 40px' : '2fr 1.2fr 1fr 1.5fr 1.5fr 40px' }}>
+              {nfHasDivergence && <div role="alert" style={{ marginBottom: '1rem', padding: '0.75rem', border: '1px solid #f4b4b4', background: '#fff1f1', color: '#a11' }}>Divergência na NF: o peso líquido × valor unitário resulta em {money(nfCalculatedTotal || 0)}, mas a NF informa {money(nfPreview?.amount || 0)}. Corrija a NF ou os dados extraídos antes de confirmar.</div>}
+              <div className="items-row items-head" style={{ gridTemplateColumns: '2fr 1.3fr 1.2fr 1.4fr 1.4fr 1.4fr 40px' }}>
                 <span>Produto</span>
-                <span>Qtd</span>
-                <span>Kg</span>
-                <span>Valor Unit.</span>
-                {saleType === 'compra_venda' && <span>Custo Unit.</span>}
-                <span>Total</span>
+                <span>Peso liquido NF</span>
+                <span>Qtd. caixas</span>
+                <span>Valor unit. NF</span>
+                <span>Cotacao dia</span>
+                <span>Total NF</span>
                 <span></span>
               </div>
               {items.map((item, index) => {
@@ -406,7 +498,7 @@ export default function NewSalePage() {
                 };
 
                 return (
-                  <div className="items-row" key={item.id} style={{ gridTemplateColumns: saleType === 'compra_venda' ? '2fr 1.2fr 1fr 1.5fr 1.5fr 1.5fr 40px' : '2fr 1.2fr 1fr 1.5fr 1.5fr 40px' }}>
+                  <div className="items-row" key={item.id} style={{ gridTemplateColumns: '2fr 1.3fr 1.2fr 1.4fr 1.4fr 1.4fr 40px' }}>
                     <select 
                       value={item.productId} 
                       onChange={(event) => updateItem(item.id, 'productId', event.target.value)}
@@ -415,18 +507,6 @@ export default function NewSalePage() {
                       <option value="">Selecione...</option>
                       {products.map((product) => <option key={product._id} value={product._id}>{product.name}</option>)}
                     </select>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                      <NumericFormat
-                        aria-label={`Qtd linha ${index + 1}`}
-                        value={item.quantityBags || ''}
-                        onValueChange={(values) => updateItem(item.id, 'quantityBags', String(values.floatValue ?? ''))}
-                        thousandSeparator="."
-                        decimalSeparator=","
-                        allowNegative={false}
-                        style={{ flex: 1, minWidth: 0 }}
-                      />
-                      <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>{getUnitSuffix(selectedProduct)}</span>
-                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <input
                         aria-label={`KG linha ${index + 1}`}
@@ -434,22 +514,37 @@ export default function NewSalePage() {
                         min="0"
                         step="0.001"
                         placeholder={String(calculated?.quantityKg ?? item.quantityBags * item.bagWeightKg)}
-                        value={item.quantityKg !== undefined ? item.quantityKg : ''}
+                        value={item.nfeWeightRaw ?? (item.quantityKg !== undefined ? item.quantityKg : '')}
                         onChange={(event) => updateItem(item.id, 'quantityKg', event.target.value)}
+                        readOnly={Boolean(nfPreview)}
                         style={{ flex: 1, minWidth: 0 }}
                       />
                       <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>kg</span>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <NumericFormat
+                        aria-label={`Quantidade de caixas linha ${index + 1}`}
+                        value={item.quantityBags ? item.quantityBags.toFixed(2) : ''}
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        decimalScale={2}
+                        fixedDecimalScale
+                        allowNegative={false}
+                        readOnly={Boolean(nfPreview)}
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#666', minWidth: '20px' }}>cx</span>
+                    </div>
                     <NumericFormat
                       aria-label={`Valor unitário linha ${index + 1}`}
-                      value={item.pricePerBag}
-                      onValueChange={(values) => updateItem(item.id, 'pricePerBag', String(values.floatValue ?? 0))}
-                      prefix="R$ "
+                      value={item.nfeUnitPrice ?? item.pricePerBag}
+                      onValueChange={(values) => updateItem(item.id, 'pricePerBag', String((values.floatValue ?? 0) * 29))}
                       thousandSeparator="."
                       decimalSeparator=","
-                      decimalScale={2}
-                      fixedDecimalScale
+                      decimalScale={4}
+                      fixedDecimalScale={Boolean(nfPreview)}
                       allowNegative={false}
+                      readOnly={Boolean(nfPreview)}
                     />
                     {saleType === 'compra_venda' && (
                       <NumericFormat
@@ -464,7 +559,8 @@ export default function NewSalePage() {
                         allowNegative={false}
                       />
                     )}
-                    <span>{money(calculated?.lineTotal ?? 0)}</span>
+                    <span>{money((item.nfeUnitPrice ?? 0) * 29)}</span>
+                    <span>{money(item.nfeTotalAmount ?? calculated?.lineTotal ?? 0)}</span>
                     <button type="button" onClick={() => removeItem(item.id)} disabled={items.length === 1} style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer', fontSize: '18px' }}>&times;</button>
                   </div>
                 );

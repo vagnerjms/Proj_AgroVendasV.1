@@ -11,6 +11,7 @@ import { UpdateSalesOrderDto } from './dto/update-sales-order.dto';
 import { SalesOrder } from './schemas/sales-order.schema';
 import { FiscalDocument } from '../fiscal-documents/schemas/fiscal-document.schema';
 import { SalesOrderCalculationService } from './sales-order-calculation.service';
+import { FiscalDocumentExtractionService } from '../fiscal-documents/fiscal-document-extraction.service';
 
 type SalesOrderListFilters = {
   orderNumber?: string;
@@ -32,6 +33,7 @@ export class SalesOrdersService {
     private readonly calculationService: SalesOrderCalculationService,
     private readonly countersService: CountersService,
     private readonly paymentsService: PaymentsService,
+    private readonly extractionService: FiscalDocumentExtractionService,
   ) {}
 
   findAll(filters: SalesOrderListFilters = {}) {
@@ -145,7 +147,7 @@ export class SalesOrdersService {
           current.weightKg = (current.weightKg || 0) + ((doc as any).totalWeightKg || 0);
           current.unitPrice = current.unitPrice ?? (doc as any).unitPrice;
           current.totalAmount = (current.totalAmount || 0) + ((doc as any).amount || 0);
-          current.boxQuote = current.unitPrice === undefined ? undefined : current.unitPrice * 29;
+          current.boxQuote = current.unitPrice === undefined ? undefined : current.weightKg * current.unitPrice;
           current.boxQuantity = current.weightKg / 29;
           fiscalMap.set(sId, current);
           if (doc.number) {
@@ -345,7 +347,7 @@ export class SalesOrdersService {
     const fiscalTotalAmount = fiscalDocs.reduce((sum, doc: any) => sum + (doc.amount || 0), 0);
     const fiscalUnitPrice = fiscalDocs.find((doc: any) => doc.unitPrice !== undefined)?.unitPrice;
     const fiscalBoxQuantity = fiscalWeightKg / 29;
-    const fiscalBoxQuote = fiscalUnitPrice === undefined ? undefined : fiscalUnitPrice * 29;
+    const fiscalBoxQuote = fiscalUnitPrice === undefined ? undefined : fiscalWeightKg * fiscalUnitPrice;
 
     const merged = { ...existing.toObject() } as unknown as CalculateSalesOrderDto;
     const calculation = this.calculationService.calculate(merged);
@@ -377,6 +379,17 @@ export class SalesOrdersService {
       ...dto,
       ...rates,
     });
+  }
+
+  async previewFiscalFile(file: Express.Multer.File) {
+    if (!file?.path) throw new BadRequestException('Arquivo fiscal nao enviado.');
+    try {
+      return this.extractionService.extract(file.path, file.originalname);
+    } catch (error: any) {
+      throw new BadRequestException(error?.message || 'Nao foi possivel extrair os dados da NF.');
+    } finally {
+      if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    }
   }
 
   private async resolveFunruralRates(dto: { saleType?: string; producerId?: string; customerId?: string }) {
@@ -499,6 +512,22 @@ export class SalesOrdersService {
       { new: true }
     );
 
+    const fiscalDocument = await this.fiscalModel.findOne({ salesOrderId: order._id, isDeleted: false });
+    if (fiscalDocument) {
+      const extension = path.extname(file.originalname).toLowerCase();
+      const kind = extension === '.xml' ? 'xml' : 'danfe_pdf';
+      await this.fiscalModel.updateOne({ _id: fiscalDocument._id }, {
+        $push: { files: { kind, originalName: file.originalname, mimeType: file.mimetype, size: file.size, storagePath: path.join(SalesOrdersService.ensureTempStorage(), file.filename), uploadedAt: new Date() } },
+      });
+      try {
+        const extracted = this.extractionService.extract(path.join(SalesOrdersService.ensureTempStorage(), file.filename), file.originalname);
+        await this.fiscalModel.updateOne({ _id: fiscalDocument._id }, { $set: { items: extracted.items, number: extracted.number, accessKey: extracted.accessKey, amount: extracted.amount, amountRaw: extracted.amountRaw, unitPrice: extracted.unitPrice, unitPriceRaw: extracted.unitPriceRaw, totalWeightKg: extracted.totalWeightKg, totalWeightRaw: extracted.totalWeightRaw, weightDecimalPlaces: extracted.weightDecimalPlaces, unitPriceDecimalPlaces: extracted.unitPriceDecimalPlaces, amountDecimalPlaces: extracted.amountDecimalPlaces, extractionMethod: extracted.method, extractionConfidence: extracted.confidence, extractionError: undefined, status: extracted.amount !== undefined ? 'issued' : 'divergent' } });
+        await this.recalculateFinancials(id);
+      } catch (error: any) {
+        await this.fiscalModel.updateOne({ _id: fiscalDocument._id }, { $set: { extractionMethod: 'none', extractionConfidence: 0, extractionError: error?.message || 'Falha na extração fiscal', status: 'divergent' } });
+      }
+    }
+
     // Disparar Webhook para n8n em segundo plano
     const partnerName = (order.customerId as any)?.name || 'Cliente';
     this.triggerWebhook({
@@ -510,6 +539,31 @@ export class SalesOrdersService {
     }).catch(err => console.error('Erro ao disparar webhook para n8n:', err));
 
     return updated;
+  }
+
+  async attachEvidence(id: string, file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Arquivo de evidencia nao enviado.');
+    const order = await this.salesOrderModel.findOne({ _id: id, isDeleted: false });
+    if (!order) throw new NotFoundException('Venda nao encontrada.');
+    await this.salesOrderModel.updateOne({ _id: id }, { $push: { orderEvidenceAttachments: file.filename } });
+    return { filename: file.filename, orderNumber: order.orderNumber };
+  }
+
+  async getEvidencePath(id: string, filename: string) {
+    const order = await this.salesOrderModel.findOne({ _id: id, isDeleted: false }).select('orderEvidenceAttachments').lean();
+    if (!order || !(order.orderEvidenceAttachments || []).includes(filename)) throw new NotFoundException('Evidencia nao encontrada.');
+    const filePath = path.join(SalesOrdersService.ensureTempStorage(), filename);
+    if (!fs.existsSync(filePath)) throw new NotFoundException('Evidencia nao encontrada.');
+    return filePath;
+  }
+
+  async removeEvidence(id: string, filename: string) {
+    const order = await this.salesOrderModel.findOne({ _id: id, isDeleted: false });
+    if (!order || !(order.orderEvidenceAttachments || []).includes(filename)) throw new NotFoundException('Evidencia nao encontrada.');
+    await this.salesOrderModel.updateOne({ _id: id }, { $pull: { orderEvidenceAttachments: filename } });
+    const filePath = path.join(SalesOrdersService.ensureTempStorage(), filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return { success: true };
   }
 
   private async triggerWebhook(payload: {

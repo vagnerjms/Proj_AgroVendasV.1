@@ -10,8 +10,6 @@ type SalesOrder = {
   orderNumber: string;
   date: string;
   status: string;
-  totalBags: number;
-  totalKg?: number;
   totalParticularAmount: number;
   totalReceivableAmount: number;
   customerId?: { name?: string };
@@ -218,9 +216,6 @@ export default function SalesListPage() {
             <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('producer')}>
               Produtor {sortBy === 'producer' && (sortOrder === 'asc' ? '▲' : '▼')}
             </span>
-            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('bags')}>
-              Sacos {sortBy === 'bags' && (sortOrder === 'asc' ? '▲' : '▼')}
-            </span>
             <span>Peso (kg)</span>
             <span>Valor unit. NF</span>
             <span>Cotação caixa</span>
@@ -262,15 +257,19 @@ export default function SalesListPage() {
               <span>{order.items?.length === 1 ? order.items[0].productId?.name : (order.items && order.items.length > 1 ? 'Vários' : '-')}</span>
               <span>{order.customerId?.name ?? '-'}</span>
               <span>{order.producerId?.name ?? '-'}</span>
-              <span>{order.totalBags ?? 0}</span>
-              <span>{order.totalKg ? order.totalKg.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg' : '-'}</span>
+              <span>{formatWeight(order.fiscalWeightKg)}</span>
               <span>{order.fiscalUnitPrice !== undefined ? money(order.fiscalUnitPrice) : '-'}</span>
-              <span>{order.fiscalBoxQuote ? money(order.fiscalBoxQuote) : '-'}</span>
-              <span>{money(order.totalParticularAmount ?? 0)}</span>
-              <span>{money(order.totalReceivableAmount ?? 0)}</span>
+              <span>{getFiscalQuote(order) !== undefined ? money(getFiscalQuote(order) as number) : '-'}</span>
+              <span>{formatFiscalMoney(getFiscalTotal(order))}</span>
+              <span>{formatFiscalMoney(getFiscalTotal(order))}</span>
               <span>{order.fiscalDocumentNumber ?? '-'}</span>
-              <span>{order.fiscalDocumentAmount ? money(order.fiscalDocumentAmount) : '-'}</span>
-              <span>{statusLabel(order.status)}</span>
+              <span>{formatFiscalMoney(getFiscalTotal(order))}</span>
+              <span>
+                {statusLabel(order.status)}
+                <small style={{ display: 'block', color: order.fiscalValueSource === 'fiscal_document' ? '#237a3b' : '#8a5a00' }}>
+                  {order.fiscalValueSource === 'fiscal_document' ? 'NF conciliada' : order.fiscalDocumentNumber ? 'NF divergente' : 'Sem NF'}
+                </small>
+              </span>
             </div>
           ))}
           {!loading && orders.length === 0 ? <p className="empty" style={{ marginTop: '15px' }}>Nenhuma venda encontrada.</p> : null}
@@ -301,6 +300,27 @@ function matches(value: string | undefined, filter: string) {
 
 function money(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatWeight(value?: number) {
+  return value !== undefined
+    ? `${value.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg`
+    : '-';
+}
+
+function getFiscalTotal(order: SalesOrder) {
+  return order.fiscalTotalAmount ?? order.fiscalDocumentAmount;
+}
+
+function formatFiscalMoney(value?: number) {
+  return value !== undefined ? money(value) : '-';
+}
+
+function getFiscalQuote(order: SalesOrder) {
+  if (order.fiscalWeightKg !== undefined && order.fiscalUnitPrice !== undefined) {
+    return order.fiscalWeightKg * order.fiscalUnitPrice;
+  }
+  return order.fiscalBoxQuote;
 }
 
 function formatDate(value: string) {

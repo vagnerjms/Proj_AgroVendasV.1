@@ -11,7 +11,8 @@ import { UpdateSalesOrderDto } from './dto/update-sales-order.dto';
 import { SalesOrdersService } from './sales-orders.service';
 import { PdfService } from './pdf.service';
 
-const allowedMimeTypes = new Set(['application/pdf', 'application/xml', 'text/xml', 'image/png', 'image/jpg', 'image/jpeg']);
+const allowedMimeTypes = new Set(['application/pdf', 'application/xml', 'text/xml']);
+const evidenceMimeTypes = new Set(['image/jpeg', 'image/png', 'application/pdf']);
 
 @Controller('sales-orders')
 export class SalesOrdersController {
@@ -47,6 +48,26 @@ export class SalesOrdersController {
   @Post('calculate')
   calculate(@Body() dto: CalculateSalesOrderDto) {
     return this.salesOrdersService.calculate(dto);
+  }
+
+  @Post('preview-nf')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('broker')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: (_request, _file, callback) => callback(null, SalesOrdersService.ensureTempStorage()),
+      filename: (_request, file, callback) => callback(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_')}`),
+    }),
+    fileFilter: (_request, file, callback) => {
+      if (!allowedMimeTypes.has(file.mimetype) && !/\.(pdf|xml)$/i.test(file.originalname)) {
+        callback(new BadRequestException('Apenas NF em PDF ou XML pode ser anexada.'), false);
+        return;
+      }
+      callback(null, true);
+    },
+  }))
+  previewNf(@UploadedFile() file: Express.Multer.File) {
+    return this.salesOrdersService.previewFiscalFile(file);
   }
 
   @Post('draft')
@@ -89,7 +110,7 @@ export class SalesOrdersController {
           callback(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_')}`),
       }),
       fileFilter: (_request, file, callback) => {
-        if (!allowedMimeTypes.has(file.mimetype)) {
+        if (!allowedMimeTypes.has(file.mimetype) && !/\.(pdf|xml)$/i.test(file.originalname)) {
           callback(new BadRequestException('Formato de arquivo não permitido.'), false);
           return;
         }
@@ -102,6 +123,39 @@ export class SalesOrdersController {
       throw new BadRequestException('Nenhum arquivo enviado.');
     }
     return this.salesOrdersService.attachFile(id, file);
+  }
+
+  @Post(':id/evidence')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('broker')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: (_request, _file, callback) => callback(null, SalesOrdersService.ensureTempStorage()),
+      filename: (_request, file, callback) => callback(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_')}`),
+    }),
+    fileFilter: (_request, file, callback) => {
+      if (!evidenceMimeTypes.has(file.mimetype) && !/\.(jpe?g|png|pdf)$/i.test(file.originalname)) {
+        callback(new BadRequestException('A evidencia deve ser uma imagem JPG/PNG ou PDF.'), false);
+        return;
+      }
+      callback(null, true);
+    },
+  }))
+  attachEvidence(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.salesOrdersService.attachEvidence(id, file);
+  }
+
+  @Get(':id/evidence/:filename')
+  @UseGuards(JwtGuard, RolesGuard)
+  async downloadEvidence(@Param('id') id: string, @Param('filename') filename: string, @Res() res: Response) {
+    return res.download(await this.salesOrdersService.getEvidencePath(id, filename));
+  }
+
+  @Delete(':id/evidence/:filename')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('broker')
+  removeEvidence(@Param('id') id: string, @Param('filename') filename: string) {
+    return this.salesOrdersService.removeEvidence(id, filename);
   }
 
   @Get(':id/files/:filename')

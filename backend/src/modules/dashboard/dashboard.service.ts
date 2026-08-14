@@ -189,7 +189,7 @@ export class DashboardService {
       const fiscalUnitPrice = saleDocs.find((f: any) => f.unitPrice !== undefined)?.unitPrice ?? sale.fiscalUnitPrice;
       const fiscalTotalAmount = nfeValue || sale.fiscalTotalAmount || 0;
       const fiscalBoxQuantity = fiscalWeightKg / 29;
-      const fiscalBoxQuote = fiscalUnitPrice === undefined ? 0 : fiscalUnitPrice * 29;
+      const fiscalBoxQuote = fiscalUnitPrice === undefined ? 0 : fiscalWeightKg * fiscalUnitPrice;
       const fiscalSource = saleDocs.length && (fiscalWeightKg || fiscalTotalAmount) ? 'fiscal_document' : 'commercial_order';
 
       return {

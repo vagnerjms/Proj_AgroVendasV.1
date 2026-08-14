@@ -193,6 +193,9 @@ export class SalesOrder extends AuditableSchema {
 
   @Prop({ type: [String], default: [] })
   attachments!: string[];
+
+  @Prop({ type: [String], default: [] })
+  orderEvidenceAttachments!: string[];
 }
 
 export const SalesOrderSchema = SchemaFactory.createForClass(SalesOrder);

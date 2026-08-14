@@ -23,7 +23,7 @@ import { CreateFiscalDocumentDto } from './dto/create-fiscal-document.dto';
 import { UpdateFiscalDocumentDto } from './dto/update-fiscal-document.dto';
 import { FiscalDocumentsService } from './fiscal-documents.service';
 
-const allowedMimeTypes = new Set(['application/pdf', 'application/xml', 'text/xml', 'image/png', 'image/jpg', 'image/jpeg']);
+const allowedMimeTypes = new Set(['application/pdf', 'application/xml', 'text/xml']);
 
 @Controller('fiscal-documents')
 @UseGuards(JwtGuard, RolesGuard)
@@ -89,7 +89,7 @@ export class FiscalDocumentsController {
           callback(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_')}`),
       }),
       fileFilter: (_request, file, callback) => {
-        if (!allowedMimeTypes.has(file.mimetype)) {
+        if (!allowedMimeTypes.has(file.mimetype) && !/\.(pdf|xml)$/i.test(file.originalname)) {
           callback(new BadRequestException('Formato de arquivo fiscal nao permitido.'), false);
           return;
         }

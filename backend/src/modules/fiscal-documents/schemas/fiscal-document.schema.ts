@@ -109,6 +109,9 @@ export class FiscalDocument extends AuditableSchema {
   @Prop({ min: 0 })
   totalWeightKg?: number;
 
+  @Prop({ trim: true })
+  totalWeightRaw?: string;
+
   @Prop({ min: 0 })
   unitPrice?: number;
 

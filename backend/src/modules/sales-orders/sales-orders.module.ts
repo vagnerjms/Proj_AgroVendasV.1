@@ -7,13 +7,14 @@ import { SalesOrderCalculationService } from './sales-order-calculation.service'
 import { SalesOrdersController } from './sales-orders.controller';
 import { SalesOrdersService } from './sales-orders.service';
 import { PdfService } from './pdf.service';
+import { FiscalDocumentExtractionService } from '../fiscal-documents/fiscal-document-extraction.service';
 
 import { FiscalDocument, FiscalDocumentSchema } from '../fiscal-documents/schemas/fiscal-document.schema';
 
 @Module({
   imports: [CountersModule, PaymentsModule, MongooseModule.forFeature([{ name: SalesOrder.name, schema: SalesOrderSchema }, { name: FiscalDocument.name, schema: FiscalDocumentSchema }])],
   controllers: [SalesOrdersController],
-  providers: [SalesOrdersService, SalesOrderCalculationService, PdfService],
+  providers: [SalesOrdersService, SalesOrderCalculationService, PdfService, FiscalDocumentExtractionService],
   exports: [SalesOrdersService, SalesOrderCalculationService, MongooseModule, PdfService],
 })
 export class SalesOrdersModule {}

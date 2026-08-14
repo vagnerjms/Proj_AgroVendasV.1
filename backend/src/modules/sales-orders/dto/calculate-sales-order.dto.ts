@@ -25,6 +25,11 @@ export class CalculateSalesOrderItemDto {
   @IsNumber()
   @Min(0)
   costPerBag?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  quantityKg?: number;
 }
 
 export class CalculateSalesOrderDto {

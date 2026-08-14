@@ -9,7 +9,8 @@
     "worker:pdf": "nest start --watch --entryFile workers/pdf.worker",
     "test": "vitest run",
     "seed": "tsx src/seeds/dev.seed.ts",
-    "seed:admin": "tsx src/seeds/admin.seed.ts"
+    "seed:admin": "tsx src/seeds/admin.seed.ts",
+    "sync:fiscal": "tsx src/seeds/sync-sales-to-nfe.ts"
   },
   "dependencies": {
     "adm-zip": "^0.5.14",

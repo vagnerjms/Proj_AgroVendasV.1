@@ -429,11 +429,17 @@ export default function EditSalePage() {
                       />
                       <span>kg</span>
                     </label>
-                    <input
-                      type="text"
-                      value={calcQtyKg.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg'}
-                      disabled
-                    />
+                    <label className="input-group">
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="any"
+                        placeholder={String(item.quantityBags * item.bagWeightKg)}
+                        value={item.quantityKg !== undefined ? item.quantityKg : ''}
+                        onChange={(event) => updateItem(item.id, 'quantityKg', event.target.value)}
+                      />
+                      <span>kg</span>
+                    </label>
                     {saleType === 'compra_venda' && (
                       <NumericFormat
                         value={item.costPerBag || ''}

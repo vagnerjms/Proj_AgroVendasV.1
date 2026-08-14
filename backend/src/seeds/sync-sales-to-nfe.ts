@@ -5,14 +5,19 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SalesOrder } from '../modules/sales-orders/schemas/sales-order.schema';
 import { FiscalDocument } from '../modules/fiscal-documents/schemas/fiscal-document.schema';
+import { FiscalDocumentsService } from '../modules/fiscal-documents/fiscal-documents.service';
 
 async function run() {
   console.log('Iniciando sincronização de vendas com as notas fiscais...');
   const app = await NestFactory.createApplicationContext(AppModule);
   
   const salesOrdersService = app.get(SalesOrdersService);
+  const fiscalDocumentsService = app.get(FiscalDocumentsService);
   const salesOrderModel = app.get<Model<SalesOrder>>(getModelToken(SalesOrder.name));
   const fiscalDocModel = app.get<Model<FiscalDocument>>(getModelToken(FiscalDocument.name));
+
+  // Rodar o backfill para garantir a extração do peso das notas antigas
+  await fiscalDocumentsService.backfillExtractedData();
 
   // Buscar todas as notas fiscais ativas vinculadas a vendas
   const fiscalDocs = await fiscalDocModel.find({ 

@@ -41,9 +41,60 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     console.log('FiscalDocumentsService: Iniciando sincronização automática de vendas com as notas...');
     try {
+      await this.backfillExtractedData();
       await this.syncSalesToNfe();
     } catch (err) {
       console.error('Erro na sincronização automática de notas fiscais:', err);
+    }
+  }
+
+  async backfillExtractedData() {
+    const docs = await this.fiscalDocumentModel.find({
+      isDeleted: false,
+      files: { $exists: true, $not: { $size: 0 } },
+      $or: [
+        { totalWeightKg: { $exists: false } },
+        { totalWeightKg: null },
+        { totalWeightKg: 0 }
+      ]
+    }).exec();
+
+    if (docs.length === 0) return;
+
+    console.log(`FiscalDocumentsService: Encontradas ${docs.length} notas antigas sem peso para extração retroativa.`);
+    
+    let successCount = 0;
+    for (const doc of docs) {
+      const file = doc.files[0];
+      if (!file || !file.storagePath || !existsSync(file.storagePath)) {
+        continue;
+      }
+      
+      try {
+        const extracted = this.extractionService.extract(file.storagePath, file.originalName);
+        if (extracted.totalWeightKg && extracted.totalWeightKg > 0) {
+          await this.fiscalDocumentModel.updateOne({ _id: doc._id }, {
+            $set: {
+              items: extracted.items,
+              totalWeightKg: extracted.totalWeightKg,
+              unitPrice: extracted.unitPrice,
+              unitPriceRaw: extracted.unitPriceRaw,
+              amountRaw: extracted.amountRaw,
+              weightDecimalPlaces: extracted.weightDecimalPlaces,
+              unitPriceDecimalPlaces: extracted.unitPriceDecimalPlaces,
+              amountDecimalPlaces: extracted.amountDecimalPlaces,
+              extractionMethod: extracted.method,
+              extractionConfidence: extracted.confidence
+            }
+          });
+          successCount++;
+        }
+      } catch (err: any) {
+        console.error(`Erro ao re-extrair peso da nota ${doc.number} (${doc._id}):`, err.message);
+      }
+    }
+    if (successCount > 0) {
+      console.log(`FiscalDocumentsService: Extração retroativa concluída com sucesso para ${successCount} notas.`);
     }
   }
 

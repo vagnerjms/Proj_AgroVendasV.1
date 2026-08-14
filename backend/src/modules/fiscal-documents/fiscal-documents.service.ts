@@ -66,9 +66,14 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
 
       const currentAmount = salesOrder.totalParticularAmount || 0;
       const targetAmount = doc.amount;
+      const currentWeight = salesOrder.totalKg || 0;
+      const targetWeight = doc.totalWeightKg || 0;
 
-      if (Math.abs(currentAmount - targetAmount) > 0.01) {
-        console.log(`Auto-Sync: Ajustando venda ${salesOrder.orderNumber} (OP: ${currentAmount} -> NF: ${targetAmount})`);
+      const valueDivergent = Math.abs(currentAmount - targetAmount) > 0.01;
+      const weightDivergent = targetWeight > 0 && Math.abs(currentWeight - targetWeight) > 0.01;
+
+      if (valueDivergent || weightDivergent) {
+        console.log(`Auto-Sync: Ajustando venda ${salesOrder.orderNumber} (Valor OP: ${currentAmount} -> NF: ${targetAmount} | Peso OP: ${currentWeight} -> NF: ${targetWeight})`);
         await this.adjustOrderAmount(orderId, undefined, targetAmount, doc.totalWeightKg);
         await this.salesOrdersService.recalculateFinancials(orderId);
         await this.fiscalDocumentModel.findByIdAndUpdate(doc._id, { status: 'issued' });

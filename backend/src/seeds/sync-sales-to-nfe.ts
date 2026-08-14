@@ -40,12 +40,16 @@ async function run() {
 
     const currentAmount = salesOrder.totalParticularAmount || 0;
     const targetAmount = doc.amount;
+    const currentWeight = salesOrder.totalKg || 0;
+    const targetWeight = doc.totalWeightKg || 0;
 
-    // Se houver diferença de valor
-    if (Math.abs(currentAmount - targetAmount) > 0.01) {
+    const valueDivergent = Math.abs(currentAmount - targetAmount) > 0.01;
+    const weightDivergent = targetWeight > 0 && Math.abs(currentWeight - targetWeight) > 0.01;
+
+    if (valueDivergent || weightDivergent) {
       console.log(`\nVenda ${salesOrder.orderNumber}:`);
-      console.log(`  - Valor OP atual: R$ ${currentAmount}`);
-      console.log(`  - Valor da Nota:  R$ ${targetAmount}`);
+      console.log(`  - Valor OP atual: R$ ${currentAmount} | Valor da Nota: R$ ${targetAmount}`);
+      console.log(`  - Peso OP atual:  ${currentWeight} kg | Peso da Nota:  ${targetWeight} kg`);
 
       if (salesOrder.items && salesOrder.items.length > 0) {
         const item = salesOrder.items[0];

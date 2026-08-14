@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
 import { basename, extname, join } from 'path';
@@ -27,7 +27,7 @@ const STORAGE_ROOT = join(process.cwd(), 'storage', 'fiscal-documents');
 const TEMP_STORAGE = join(process.cwd(), 'storage', 'tmp', 'fiscal-documents');
 
 @Injectable()
-export class FiscalDocumentsService {
+export class FiscalDocumentsService implements OnApplicationBootstrap {
   constructor(
     @InjectModel(FiscalDocument.name) private readonly fiscalDocumentModel: Model<FiscalDocument>,
     @InjectModel(SalesOrder.name) private readonly salesOrderModel: Model<SalesOrderDocument>,
@@ -35,6 +35,64 @@ export class FiscalDocumentsService {
     private readonly salesOrdersService: SalesOrdersService,
     private readonly purchaseOrdersService: PurchaseOrdersService,
   ) {}
+
+  async onApplicationBootstrap() {
+    console.log('FiscalDocumentsService: Iniciando sincronização automática de vendas com as notas...');
+    try {
+      await this.syncSalesToNfe();
+    } catch (err) {
+      console.error('Erro na sincronização automática de notas fiscais:', err);
+    }
+  }
+
+  async syncSalesToNfe() {
+    const fiscalDocs = await this.fiscalDocumentModel.find({ 
+      isDeleted: false, 
+      salesOrderId: { $exists: true, $ne: null },
+      status: { $ne: 'cancelled' } 
+    }).exec();
+
+    let updatedCount = 0;
+    for (const doc of fiscalDocs) {
+      if (!doc.salesOrderId || !doc.amount || doc.amount <= 0) {
+        continue;
+      }
+
+      const orderId = doc.salesOrderId.toString();
+      const salesOrder = await this.salesOrderModel.findOne({ _id: orderId, isDeleted: false }).exec();
+      if (!salesOrder) continue;
+
+      const currentAmount = salesOrder.totalParticularAmount || 0;
+      const targetAmount = doc.amount;
+
+      if (Math.abs(currentAmount - targetAmount) > 0.01) {
+        console.log(`Auto-Sync: Ajustando venda ${salesOrder.orderNumber} (OP: ${currentAmount} -> NF: ${targetAmount})`);
+        
+        if (salesOrder.items && salesOrder.items.length > 0) {
+          const item = salesOrder.items[0];
+          let qtyBags = item.quantityBags || 0;
+          if (qtyBags === 0 && item.quantityKg > 0) {
+            qtyBags = item.quantityKg / (item.bagWeightKg || 25);
+          }
+          if (qtyBags > 0) {
+            const newPricePerBag = Math.round((targetAmount / qtyBags) * 10000) / 10000;
+            const newLineTotal = Math.round(qtyBags * newPricePerBag * 100) / 100;
+            
+            item.pricePerBag = newPricePerBag;
+            item.lineTotal = newLineTotal;
+
+            await this.salesOrderModel.findByIdAndUpdate(orderId, { items: salesOrder.items });
+            await this.salesOrdersService.recalculateFinancials(orderId);
+            await this.fiscalDocumentModel.findByIdAndUpdate(doc._id, { status: 'issued' });
+            updatedCount++;
+          }
+        }
+      }
+    }
+    if (updatedCount > 0) {
+      console.log(`FiscalDocumentsService: Sincronizadas ${updatedCount} vendas com suas notas com sucesso.`);
+    }
+  }
 
   static ensureTempStorage() {
     if (!existsSync(TEMP_STORAGE)) {

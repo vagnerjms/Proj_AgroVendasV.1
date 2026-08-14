@@ -49,31 +49,35 @@ async function run() {
 
       if (salesOrder.items && salesOrder.items.length > 0) {
         const item = salesOrder.items[0];
-        const pricePerBag = item.pricePerBag || 0;
-        
-        if (pricePerBag > 0) {
+        const bagWeight = item.bagWeightKg || 25;
+        let qtyKg = doc.totalWeightKg || 0;
+        if (qtyKg <= 0) {
+          const pricePerBag = item.pricePerBag || 1;
           const qtyBags = Math.round((targetAmount / pricePerBag) * 1000) / 1000;
-          const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
-          
-          console.log(`  - Ajustando item: Sacos R$ ${item.quantityBags} -> ${qtyBags} | Peso R$ ${item.quantityKg} -> ${qtyKg}`);
-          
-          item.quantityBags = qtyBags;
-          item.quantityKg = qtyKg;
-          item.lineTotal = Math.round(qtyBags * pricePerBag * 100) / 100;
-
-          await salesOrderModel.findByIdAndUpdate(orderId, { items: salesOrder.items });
-          
-          // Chamar o recálculo do service para atualizar impostos, netAmount, pagamentos, etc.
-          await salesOrdersService.recalculateFinancials(orderId);
-          
-          // Atualizar o status da nota fiscal para emitida (pois agora os valores batem!)
-          await fiscalDocModel.findByIdAndUpdate(doc._id, { status: 'issued' });
-          
-          console.log(`  - Venda ${salesOrder.orderNumber} recalculada e sincronizada com sucesso!`);
-          updatedCount++;
-        } else {
-          console.log(`  - Erro: Venda sem preço unitário válido para recalcular.`);
+          qtyKg = Math.round(qtyBags * bagWeight * 1000) / 1000;
         }
+        const qtyBags = Math.round((qtyKg / bagWeight) * 1000) / 1000;
+        
+        console.log(`  - Ajustando item: Sacos R$ ${item.quantityBags} -> ${qtyBags} | Peso R$ ${item.quantityKg} -> ${qtyKg}`);
+        
+        item.quantityBags = qtyBags;
+        item.quantityKg = qtyKg;
+        
+        if (qtyBags > 0) {
+          item.pricePerBag = Math.round((targetAmount / qtyBags) * 10000) / 10000;
+          item.lineTotal = Math.round(qtyBags * item.pricePerBag * 100) / 100;
+        }
+
+        await salesOrderModel.findByIdAndUpdate(orderId, { items: salesOrder.items });
+        
+        // Chamar o recálculo do service para atualizar impostos, netAmount, pagamentos, etc.
+        await salesOrdersService.recalculateFinancials(orderId);
+        
+        // Atualizar o status da nota fiscal para emitida (pois agora os valores batem!)
+        await fiscalDocModel.findByIdAndUpdate(doc._id, { status: 'issued' });
+        
+        console.log(`  - Venda ${salesOrder.orderNumber} recalculada e sincronizada com sucesso!`);
+        updatedCount++;
       }
     }
   }

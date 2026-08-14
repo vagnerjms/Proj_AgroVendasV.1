@@ -50,4 +50,9 @@ export class CreateFiscalDocumentDto {
   @IsOptional()
   @IsBoolean()
   adjustOrderAmount?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  totalWeightKg?: number;
 }

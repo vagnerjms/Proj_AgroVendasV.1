@@ -78,6 +78,7 @@ const emptyForm = {
   amount: 0,
   status: 'issued',
   notes: '',
+  totalWeightKg: 0,
 };
 
 type FiscalSummary = {
@@ -222,6 +223,7 @@ export default function FiscalPage() {
             amount: row.fiscal.amount ?? amount ?? 0,
             status: row.fiscal.status ?? 'issued',
             notes: row.fiscal.notes ?? '',
+            totalWeightKg: row.fiscal.totalWeightKg ?? 0,
           }
         : {
             ...emptyForm,
@@ -259,6 +261,7 @@ export default function FiscalPage() {
         status: form.status,
         issuedAt: form.issuedAt,
         adjustOrderAmount: adjustOrderAmount,
+        totalWeightKg: form.totalWeightKg ? Number(form.totalWeightKg) : undefined,
       };
       
       if (form.number) payload.number = form.number;
@@ -518,6 +521,17 @@ export default function FiscalPage() {
                   allowNegative={false}
                 />
               </label>
+              <label>Peso da Nota (kg)
+                <NumericFormat
+                  value={form.totalWeightKg}
+                  onValueChange={(values) => setForm((current) => ({ ...current, totalWeightKg: values.floatValue ?? 0 }))}
+                  suffix=" kg"
+                  thousandSeparator="."
+                  decimalSeparator=","
+                  decimalScale={3}
+                  allowNegative={false}
+                />
+              </label>
               <label>Emitente
                 <input value={form.issuer} onChange={(event) => setForm((current) => ({ ...current, issuer: event.target.value }))} />
               </label>
@@ -642,6 +656,13 @@ export default function FiscalPage() {
                             }
                           }
 
+                          // Peso Líquido / Quantidade
+                          let totalWeightKg = undefined;
+                          const weightMatch = text.match(/(?:PESO LÍQUIDO|PESO LIQUIDO|QUANTIDADE|PESO BRUTO|PESO B)[\s\S]{0,50}?([\d]{1,3}(?:\.[\d]{3})*,\d{1,3})/i);
+                          if (weightMatch) {
+                            totalWeightKg = parseFloat(weightMatch[1].replace(/\./g, '').replace(',', '.'));
+                          }
+
                           setForm((prev) => ({
                             ...prev,
                             ...(chNFe && { accessKey: chNFe }),
@@ -649,6 +670,7 @@ export default function FiscalPage() {
                             ...(serie && { series: serie }),
                             ...(issuedAtDate && { issuedAt: issuedAtDate }),
                             ...(amount !== undefined && !isNaN(amount) && { amount: amount }),
+                            ...(totalWeightKg !== undefined && !isNaN(totalWeightKg) && { totalWeightKg: totalWeightKg }),
                             ...(emitName && { issuer: emitName }),
                             ...(destName && { recipient: destName })
                           }));
@@ -683,6 +705,12 @@ export default function FiscalPage() {
                           
                           const destNode = xmlDoc.getElementsByTagName('dest')[0];
                           const destName = destNode ? destNode.getElementsByTagName('xNome')[0]?.textContent : '';
+
+                          const qComs = Array.from(xmlDoc.getElementsByTagName('qCom')).map(el => {
+                            const val = Number(el.textContent || 0);
+                            return isNaN(val) ? 0 : val;
+                          });
+                          const totalWeightKg = qComs.reduce((sum, q) => sum + q, 0);
                           
                           setForm((prev) => ({
                             ...prev,
@@ -692,7 +720,8 @@ export default function FiscalPage() {
                             ...(dhEmi && { issuedAt: dhEmi }),
                             ...(emitName && { issuer: emitName }),
                             ...(destName && { recipient: destName }),
-                            ...(vNF && { amount: Number(vNF) })
+                            ...(vNF && { amount: Number(vNF) }),
+                            ...(totalWeightKg > 0 && { totalWeightKg })
                           }));
                           toast.success('Campos preenchidos magicamente pelo XML! ✨');
                         } catch (err) {

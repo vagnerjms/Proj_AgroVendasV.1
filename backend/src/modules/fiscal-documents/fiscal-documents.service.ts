@@ -69,24 +69,10 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
 
       if (Math.abs(currentAmount - targetAmount) > 0.01) {
         console.log(`Auto-Sync: Ajustando venda ${salesOrder.orderNumber} (OP: ${currentAmount} -> NF: ${targetAmount})`);
-        
-        if (salesOrder.items && salesOrder.items.length > 0) {
-          const item = salesOrder.items[0];
-          const pricePerBag = item.pricePerBag || 0;
-          if (pricePerBag > 0) {
-            const qtyBags = Math.round((targetAmount / pricePerBag) * 1000) / 1000;
-            const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
-            
-            item.quantityBags = qtyBags;
-            item.quantityKg = qtyKg;
-            item.lineTotal = Math.round(qtyBags * pricePerBag * 100) / 100;
-
-            await this.salesOrderModel.findByIdAndUpdate(orderId, { items: salesOrder.items });
-            await this.salesOrdersService.recalculateFinancials(orderId);
-            await this.fiscalDocumentModel.findByIdAndUpdate(doc._id, { status: 'issued' });
-            updatedCount++;
-          }
-        }
+        await this.adjustOrderAmount(orderId, undefined, targetAmount, doc.totalWeightKg);
+        await this.salesOrdersService.recalculateFinancials(orderId);
+        await this.fiscalDocumentModel.findByIdAndUpdate(doc._id, { status: 'issued' });
+        updatedCount++;
       }
     }
     if (updatedCount > 0) {
@@ -145,35 +131,47 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
     };
   }
 
-  private async adjustOrderAmount(sId?: string, pId?: string, amount?: number) {
+  private async adjustOrderAmount(sId?: string, pId?: string, amount?: number, totalWeightKg?: number) {
     if (!amount || amount <= 0) return;
     if (sId) {
       const salesOrder = await this.salesOrderModel.findOne({ _id: sId, isDeleted: false });
       if (salesOrder && salesOrder.items?.length > 0) {
         const item = salesOrder.items[0];
-        const pricePerBag = item.pricePerBag || 0;
-        if (pricePerBag > 0) {
+        const bagWeight = item.bagWeightKg || 25;
+        let qtyKg = totalWeightKg || 0;
+        if (qtyKg <= 0) {
+          const pricePerBag = item.pricePerBag || 1;
           const qtyBags = Math.round((amount / pricePerBag) * 1000) / 1000;
-          const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
-          item.quantityBags = qtyBags;
-          item.quantityKg = qtyKg;
-          item.lineTotal = Math.round(qtyBags * pricePerBag * 100) / 100;
-          await salesOrder.save();
+          qtyKg = Math.round(qtyBags * bagWeight * 1000) / 1000;
         }
+        const qtyBags = Math.round((qtyKg / bagWeight) * 1000) / 1000;
+        item.quantityKg = qtyKg;
+        item.quantityBags = qtyBags;
+        if (qtyBags > 0) {
+          item.pricePerBag = Math.round((amount / qtyBags) * 10000) / 10000;
+          item.lineTotal = Math.round(qtyBags * item.pricePerBag * 100) / 100;
+        }
+        await salesOrder.save();
       }
     } else if (pId) {
       const purchaseOrder = await this.purchaseOrderModel.findOne({ _id: pId, isDeleted: false });
       if (purchaseOrder && purchaseOrder.items?.length > 0) {
         const item = purchaseOrder.items[0];
-        const costPerBag = item.costPerBag || 0;
-        if (costPerBag > 0) {
+        const bagWeight = item.bagWeightKg || 25;
+        let qtyKg = totalWeightKg || 0;
+        if (qtyKg <= 0) {
+          const costPerBag = item.costPerBag || 1;
           const qtyBags = Math.round((amount / costPerBag) * 1000) / 1000;
-          const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
-          item.quantityBags = qtyBags;
-          item.quantityKg = qtyKg;
-          item.lineTotal = Math.round(qtyBags * costPerBag * 100) / 100;
-          await purchaseOrder.save();
+          qtyKg = Math.round(qtyBags * bagWeight * 1000) / 1000;
         }
+        const qtyBags = Math.round((qtyKg / bagWeight) * 1000) / 1000;
+        item.quantityKg = qtyKg;
+        item.quantityBags = qtyBags;
+        if (qtyBags > 0) {
+          item.costPerBag = Math.round((amount / qtyBags) * 10000) / 10000;
+          item.lineTotal = Math.round(qtyBags * item.costPerBag * 100) / 100;
+        }
+        await purchaseOrder.save();
       }
     }
   }
@@ -185,7 +183,7 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
     const sId = dto.salesOrderId;
     const pId = dto.purchaseOrderId;
     if (dto.adjustOrderAmount && dto.amount && dto.amount > 0) {
-      await this.adjustOrderAmount(sId, pId, dto.amount);
+      await this.adjustOrderAmount(sId, pId, dto.amount, dto.totalWeightKg);
     }
     const order = await this.findOrder(sId, pId);
     const status = this.resolveStatus(dto.status, dto.amount, order);
@@ -217,7 +215,8 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
     const nextAmount = dto.amount ?? existing.amount;
 
     if (dto.adjustOrderAmount && nextAmount !== undefined && nextAmount > 0) {
-      await this.adjustOrderAmount(sId, pId, nextAmount);
+      const nextWeight = dto.totalWeightKg !== undefined ? dto.totalWeightKg : existing.totalWeightKg;
+      await this.adjustOrderAmount(sId, pId, nextAmount, nextWeight);
     }
 
     const order = await this.findOrder(sId, pId);
@@ -367,6 +366,14 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
           status: extracted.amount !== undefined ? 'issued' : 'divergent',
         },
       });
+      if (fiscalDocument.adjustOrderAmount && extracted.amount && extracted.amount > 0) {
+        await this.adjustOrderAmount(
+          fiscalDocument.salesOrderId?.toString(),
+          fiscalDocument.purchaseOrderId?.toString(),
+          extracted.amount,
+          extracted.totalWeightKg,
+        );
+      }
       if (fiscalDocument.salesOrderId) await this.salesOrdersService.recalculateFinancials(fiscalDocument.salesOrderId.toString());
     } catch (error: any) {
       await this.fiscalDocumentModel.updateOne({ _id: fiscalDocument._id }, {

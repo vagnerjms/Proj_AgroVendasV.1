@@ -148,6 +148,9 @@ export class FiscalDocument extends AuditableSchema {
 
   @Prop({ trim: true })
   notes?: string;
+
+  @Prop({ type: Boolean, default: false })
+  adjustOrderAmount?: boolean;
 }
 
 export const FiscalDocumentSchema = SchemaFactory.createForClass(FiscalDocument);

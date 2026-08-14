@@ -10,7 +10,8 @@
     "test": "vitest run",
     "seed": "tsx src/seeds/dev.seed.ts",
     "seed:admin": "tsx src/seeds/admin.seed.ts",
-    "sync:fiscal": "tsx src/seeds/sync-sales-to-nfe.ts"
+    "sync:fiscal": "tsx src/seeds/sync-sales-to-nfe.ts",
+    "audit:fiscal": "tsx src/seeds/audit_and_reconcile_fiscal_documents.ts"
   },
   "dependencies": {
     "adm-zip": "^0.5.14",

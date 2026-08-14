@@ -141,6 +141,24 @@ export class SalesOrder extends AuditableSchema {
   @Prop({ type: Number, default: 0, min: 0 })
   totalReceivableAmount!: number;
 
+  @Prop({ type: Number, min: 0 })
+  fiscalWeightKg?: number;
+
+  @Prop({ type: Number, min: 0 })
+  fiscalUnitPrice?: number;
+
+  @Prop({ type: Number, min: 0 })
+  fiscalTotalAmount?: number;
+
+  @Prop({ type: Number, min: 0 })
+  fiscalBoxQuantity?: number;
+
+  @Prop({ type: Number, min: 0 })
+  fiscalBoxQuote?: number;
+
+  @Prop({ type: String, enum: ['fiscal_document', 'commercial_order'] })
+  fiscalValueSource?: 'fiscal_document' | 'commercial_order';
+
   @Prop({ type: Number, default: 0, min: 0 })
   producerNetAmount!: number;
 

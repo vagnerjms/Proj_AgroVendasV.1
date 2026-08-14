@@ -1,0 +1,93 @@
+import { Injectable } from '@nestjs/common';
+import { readFileSync } from 'fs';
+import { execFileSync } from 'child_process';
+
+export type ExtractedFiscalItem = {
+  description: string;
+  quantityKg?: number;
+  unitPrice?: number;
+  totalAmount?: number;
+  quantityKgRaw?: string;
+  unitPriceRaw?: string;
+  totalAmountRaw?: string;
+  quantityKgDecimalPlaces?: number;
+  unitPriceDecimalPlaces?: number;
+  totalAmountDecimalPlaces?: number;
+};
+
+export type ExtractedFiscalData = {
+  items: ExtractedFiscalItem[];
+  number?: string;
+  accessKey?: string;
+  amount?: number;
+  amountRaw?: string;
+  unitPrice?: number;
+  unitPriceRaw?: string;
+  totalWeightKg?: number;
+  weightDecimalPlaces?: number;
+  unitPriceDecimalPlaces?: number;
+  amountDecimalPlaces?: number;
+  method: 'xml' | 'ocr';
+  confidence: number;
+};
+
+@Injectable()
+export class FiscalDocumentExtractionService {
+  extract(filePath: string, originalName: string): ExtractedFiscalData {
+    const extension = originalName.toLowerCase().split('.').pop();
+    const buffer = readFileSync(filePath);
+    if (extension === 'xml') return this.extractXml(buffer.toString('utf8'));
+
+    let text = '';
+    try {
+      text = execFileSync('tesseract', [filePath, 'stdout', '-l', 'por+eng'], { encoding: 'utf8', timeout: 120000 });
+    } catch {
+      throw new Error('OCR indisponível: instale o Tesseract no servidor para processar PDF/imagem.');
+    }
+    return this.extractText(text, 'ocr');
+  }
+
+  private extractXml(xml: string): ExtractedFiscalData {
+    const itemBlocks = [...xml.matchAll(/<det[\s\S]*?<prod>([\s\S]*?)<\/prod>[\s\S]*?<\/det>/gi)].map((m) => m[1]);
+    const items = itemBlocks.map((block) => ({
+      description: this.tag(block, 'xProd') || 'Item da NF',
+      quantityKgRaw: this.tag(block, 'qCom'),
+      unitPriceRaw: this.tag(block, 'vUnCom'),
+      totalAmountRaw: this.tag(block, 'vProd'),
+      quantityKg: this.number(this.tag(block, 'qCom')),
+      unitPrice: this.number(this.tag(block, 'vUnCom')),
+      totalAmount: this.number(this.tag(block, 'vProd')),
+      quantityKgDecimalPlaces: this.places(this.tag(block, 'qCom')),
+      unitPriceDecimalPlaces: this.places(this.tag(block, 'vUnCom')),
+      totalAmountDecimalPlaces: this.places(this.tag(block, 'vProd')),
+    }));
+    const amountRaw = this.tag(xml, 'vNF');
+    const accessKey = xml.match(/Id="NFe(\d{44})"/i)?.[1];
+    return this.aggregate(items, 'xml', 1, this.tag(xml, 'nNF'), accessKey, amountRaw);
+  }
+
+  private extractText(text: string, method: 'ocr'): ExtractedFiscalData {
+    const amountRaw = this.findValue(text, /(valor\s+total|valor\s+da\s+nota|vNF)[^\d]*([\d.]+,\d{2,})/i);
+    const unitPriceRaw = this.findValue(text, /(valor\s+unit[aá]rio|pre[cç]o\s+unit[aá]rio)[^\d]*([\d.]+,\d{2,})/i);
+    const weightRaw = this.findValue(text, /(peso\s+l[ií]quido|quantidade|qCom)[^\d]*([\d.]+,\d{1,})/i);
+    const item: ExtractedFiscalItem = {
+      description: 'Item extraído por OCR', quantityKgRaw: weightRaw, unitPriceRaw, totalAmountRaw: amountRaw,
+      quantityKg: this.number(weightRaw), unitPrice: this.number(unitPriceRaw), totalAmount: this.number(amountRaw),
+      quantityKgDecimalPlaces: this.places(weightRaw), unitPriceDecimalPlaces: this.places(unitPriceRaw), totalAmountDecimalPlaces: this.places(amountRaw),
+    };
+    return this.aggregate([item], method, 0.6, this.findValue(text, /(n[úu]mero\s+da\s+nota|NF)[^\d]*(\d+)/i), undefined, amountRaw);
+  }
+
+  private aggregate(items: ExtractedFiscalItem[], method: 'xml' | 'ocr', confidence: number, number?: string, accessKey?: string, amountRaw?: string): ExtractedFiscalData {
+    const valid = items.filter((i) => i.quantityKg !== undefined || i.totalAmount !== undefined);
+    const totalWeightKg = valid.reduce((sum, i) => sum + (i.quantityKg || 0), 0);
+    const amount = this.number(amountRaw) ?? valid.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
+    const first = valid.find((i) => i.unitPrice !== undefined);
+    return { items, number, accessKey, amount, amountRaw, unitPrice: first?.unitPrice, unitPriceRaw: first?.unitPriceRaw, totalWeightKg, weightDecimalPlaces: Math.max(...items.map(i => i.quantityKgDecimalPlaces || 0), 0), unitPriceDecimalPlaces: first?.unitPriceDecimalPlaces, amountDecimalPlaces: this.places(amountRaw), method, confidence };
+  }
+
+  private tag(source: string, name: string) { return source.match(new RegExp(`<${name}[^>]*>([^<]+)</${name}>`, 'i'))?.[1]?.trim(); }
+  private findValue(source: string, expression: RegExp) { return source.match(expression)?.[2]?.trim(); }
+  private number(value?: string) { if (!value) return undefined; const normalized = value.includes(',') ? value.replace(/\./g, '').replace(',', '.') : value; const result = Number(normalized); return Number.isFinite(result) ? result : undefined; }
+  private places(value?: string) { return value ? (value.includes(',') ? value.split(',')[1].length : value.split('.')[1]?.length || 0) : undefined; }
+}

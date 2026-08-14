@@ -42,6 +42,13 @@ type SalesOrder = {
   customerId?: { name?: string; city?: string; state?: string };
   producerId?: { name?: string; city?: string; state?: string };
   attachments?: string[];
+  fiscalDocuments?: Array<{ number?: string; accessKey?: string; amount?: number; totalWeightKg?: number; unitPrice?: number; extractionMethod?: string; extractionConfidence?: number; extractionError?: string }>;
+  fiscalWeightKg?: number;
+  fiscalUnitPrice?: number;
+  fiscalTotalAmount?: number;
+  fiscalBoxQuantity?: number;
+  fiscalBoxQuote?: number;
+  fiscalValueSource?: string;
 };
 
 export default function SaleDetailPage() {
@@ -173,6 +180,25 @@ export default function SaleDetailPage() {
           <strong>{money(order.totalReceivableAmount ?? 0)}</strong>
         </article>
       </section>
+
+      {order.fiscalDocuments && order.fiscalDocuments.length > 0 && (
+        <section className="panel form-section" style={{ marginBottom: '1.5rem' }}>
+          <h2>Dados oficiais da NF (somente leitura)</h2>
+          {order.fiscalDocuments.map((doc, index) => (
+            <dl key={`${doc.number || 'nf'}-${index}`}>
+              <dt>Pedido</dt><dd>{order.orderNumber}</dd>
+              <dt>Número da NF</dt><dd>{doc.number || '-'}</dd>
+              <dt>Chave de acesso</dt><dd>{doc.accessKey || '-'}</dd>
+              <dt>Peso total</dt><dd>{doc.totalWeightKg?.toLocaleString('pt-BR', { maximumFractionDigits: 6 }) || '-'} kg</dd>
+              <dt>Valor unitário</dt><dd>{doc.unitPrice !== undefined ? money(doc.unitPrice) : '-'}</dd>
+              <dt>Valor total / líquido</dt><dd>{doc.amount !== undefined ? money(doc.amount) : '-'}</dd>
+              <dt>Extração</dt><dd>{doc.extractionMethod || '-'}{doc.extractionConfidence !== undefined ? ` (${Math.round(doc.extractionConfidence * 100)}%)` : ''}</dd>
+              {doc.extractionError && <><dt>Erro de extração</dt><dd className="error-message">{doc.extractionError}</dd></>}
+            </dl>
+          ))}
+          <p style={{ marginTop: '1rem', color: '#526052' }}>Caixas derivadas: {(order.fiscalBoxQuantity || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Cotação da caixa: {money(order.fiscalBoxQuote || 0)}.</p>
+        </section>
+      )}
 
       <section className="detail-grid">
         <article className="panel form-section">

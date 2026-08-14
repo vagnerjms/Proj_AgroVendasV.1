@@ -20,6 +20,12 @@ type SalesOrder = {
   items?: { productId?: { name?: string } }[];
   fiscalDocumentAmount?: number;
   fiscalDocumentNumber?: string;
+  fiscalWeightKg?: number;
+  fiscalUnitPrice?: number;
+  fiscalTotalAmount?: number;
+  fiscalBoxQuote?: number;
+  fiscalBoxQuantity?: number;
+  fiscalValueSource?: string;
 };
 
 const emptyFilters = {
@@ -216,6 +222,8 @@ export default function SalesListPage() {
               Sacos {sortBy === 'bags' && (sortOrder === 'asc' ? '▲' : '▼')}
             </span>
             <span>Peso (kg)</span>
+            <span>Valor unit. NF</span>
+            <span>Cotação caixa</span>
             <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleSort('total')}>
               Total {sortBy === 'total' && (sortOrder === 'asc' ? '▲' : '▼')}
             </span>
@@ -256,6 +264,8 @@ export default function SalesListPage() {
               <span>{order.producerId?.name ?? '-'}</span>
               <span>{order.totalBags ?? 0}</span>
               <span>{order.totalKg ? order.totalKg.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg' : '-'}</span>
+              <span>{order.fiscalUnitPrice !== undefined ? money(order.fiscalUnitPrice) : '-'}</span>
+              <span>{order.fiscalBoxQuote ? money(order.fiscalBoxQuote) : '-'}</span>
               <span>{money(order.totalParticularAmount ?? 0)}</span>
               <span>{money(order.totalReceivableAmount ?? 0)}</span>
               <span>{order.fiscalDocumentNumber ?? '-'}</span>

@@ -106,12 +106,12 @@ function LojaReportContent() {
   }
 
   const getGrossAmount = (s: any) => {
-    return s.totalParticularAmount ?? 0;
+    return s.fiscalSource === 'fiscal_document' ? (s.fiscalTotalAmount ?? s.nfeValue ?? 0) : (s.totalParticularAmount ?? 0);
   };
 
   const getNetAmount = (s: any) => {
     // O líquido a receber deve ser sempre o bruto descontado do FUNRURAL
-    return (s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0);
+    return s.fiscalSource === 'fiscal_document' ? (s.fiscalTotalAmount ?? s.nfeValue ?? 0) : ((s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0));
   };
 
   const getRecebidoAmount = (s: any) => {
@@ -189,6 +189,11 @@ function LojaReportContent() {
 
   function formatQuantity(val: number) {
     return val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  function formatFiscal(value: number | undefined, decimalPlaces?: number) {
+    if (value === undefined || value === null) return '-';
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: decimalPlaces ?? 2, maximumFractionDigits: decimalPlaces ?? 2 });
   }
 
   const changeViewMode = (mode: 'cliente' | 'produtor' | 'geral') => {
@@ -393,17 +398,7 @@ function LojaReportContent() {
 
 
   const getProductUnit = (productName: string) => {
-    if (productName.toLowerCase().includes('cenoura')) {
-      return 'cx';
-    }
-    // Search in the list for the registered unit
-    for (const sale of visibleData) {
-      const matched = (sale.items || []).find((item: any) => item.productId?.name === productName);
-      if (matched?.productId?.defaultUnit) {
-        return matched.productId.defaultUnit;
-      }
-    }
-    return 'sc';
+    return 'kg';
   };
 
   const getProductCellData = (sale: any, productName: string) => {
@@ -411,32 +406,22 @@ function LojaReportContent() {
     const matchedItems = items.filter((item: any) => item.productId?.name === productName);
     if (matchedItems.length === 0) return '-';
 
-    const totalQty = matchedItems.reduce((sum: number, item: any) => sum + (item.quantityBags || 0), 0);
-    const prices = matchedItems.map((item: any) => {
-      const price = (viewMode === 'produtor' && sale.saleType === 'compra_venda' && item.costPerBag) 
-        ? item.costPerBag 
-        : (item.pricePerBag || 0);
-      return money(price);
-    });
-    
-    const uniquePrices = Array.from(new Set(prices)).join(' / ');
-    const unit = getProductUnit(productName);
-
-    return `${formatQuantity(totalQty)} ${unit} (${uniquePrices})`;
+    const totalKg = matchedItems.reduce((sum: number, item: any) => sum + (item.quantityKg || (item.quantityBags || 0) * (item.bagWeightKg || 0)), 0);
+    return `${formatQuantity(totalKg)} kg`;
   };
 
   const getProductTotalQty = (productName: string) => {
     return visibleData.reduce((sum, s) => {
       const matchedItems = (s.items || []).filter((item: any) => item.productId?.name === productName);
-      return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityBags || 0), 0);
+      return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityKg || (item.quantityBags || 0) * (item.bagWeightKg || 0)), 0);
     }, 0);
   };
 
   const getColSpan = () => {
-    let base = 3; // Part, Data, Destinatário
+    let base = 5; // Part, Data, Destinatário, peso NF, cotação caixa
     if (viewMode !== 'cliente') base += 1; // Produtor
     base += uniqueProducts.length;
-    let end = 7; // Bruto, Líq. Receber, Venc. Receber, FUNRURAL, NFe, Recebido, Status
+    let end = 8; // Valor NF, Líq. Receber, Venc. Receber, FUNRURAL, NF, Recebido, Status
     if (viewMode === 'geral') end += 3; // Líq. Pagar, Venc. Pagar, Lucro Líquido
     return base + end;
   };
@@ -580,13 +565,15 @@ function LojaReportContent() {
                 </th>
               ))}
               
-              <th>Bruto Venda</th>
+              <th>Peso NF (kg)</th>
+              <th>Cotacao caixa</th>
+              <th>Valor NF</th>
               <th>{viewMode === 'cliente' ? 'Líq. a Pagar' : 'Líq. a Receber'}</th>
               <th>Venc. Receber</th>
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Venc. Pagar</th>}
               <th>FUNRURAL</th>
-              <th>Valor NFe's</th>
+              <th>Numero NF</th>
  
               {viewMode === 'geral' && <th style={{background: '#b39ddb', color: '#333'}}>Lucro Líquido</th>}
  
@@ -595,7 +582,7 @@ function LojaReportContent() {
             </tr>
           </thead>
           <tbody>
-            {groupedData.map((group) => {
+            {groupedData.map((group, groupIndex) => {
               const groupGross = group.items.reduce((acc, s) => acc + getGrossAmount(s), 0);
               const groupNet = group.items.reduce((acc, s) => acc + getNetAmount(s), 0);
               const groupPagar = group.items.reduce((acc, s) => acc + getProducerNetAmount(s), 0);
@@ -607,7 +594,7 @@ function LojaReportContent() {
               return (
                 <Fragment key={group.key}>
                   {/* Linha de separação e cabeçalho da loja */}
-                  <tr className="group-header-row" style={{ background: groupHeaderBgColor, borderBottom: '2px solid #cbd5e1' }}>
+                  <tr className="group-header-row" style={{ background: groupHeaderBgColor, borderBottom: '2px solid #cbd5e1', pageBreakBefore: groupIndex > 0 ? 'always' : 'auto' }}>
                     <td 
                       colSpan={getColSpan()} 
                       style={{ fontWeight: 'bold', color: groupHeaderTextColor, padding: '12px', fontSize: '15px', textAlign: 'left' }}
@@ -623,6 +610,8 @@ function LojaReportContent() {
                       <td style={{whiteSpace: 'nowrap'}}>{formatDate(s.date)}</td>
                       {viewMode !== 'cliente' && <td style={{textAlign: 'left'}}>{s.producerName}</td>}
                       <td style={{textAlign: 'left'}}>{s.customerName}</td>
+                      <td>{formatFiscal(s.fiscalWeightKg, s.fiscalDecimalPlaces?.weight)} kg</td>
+                      <td>{money(s.fiscalBoxQuote || 0)}</td>
                       
                       {uniqueProducts.map((prodName) => (
                         <td key={prodName} style={{whiteSpace: 'nowrap'}}>
@@ -636,7 +625,7 @@ function LojaReportContent() {
                       {viewMode === 'geral' && <td>{money(getProducerNetAmount(s))}</td>}
                       {viewMode === 'geral' && <td>{s.saleType === 'venda_estoque' ? '-' : formatDate(s.producerDueDate || s.dueDate)}</td>}
                       <td>{money(getFunruralAmount(s))}</td>
-                      <td>{money(s.nfeValue)}</td>
+                      <td>{s.nfeNumbers || '-'}</td>
      
                       {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: getLucro(s) < 0 ? 'red' : 'green'}}>{money(getLucro(s))}</td>}
      
@@ -651,6 +640,8 @@ function LojaReportContent() {
                     <td></td>
                     {viewMode !== 'cliente' && <td></td>}
                     <td style={{ textAlign: 'left' }}>{group.key}</td>
+                    <td>{formatFiscal(group.items.reduce((sum, s) => sum + (s.fiscalWeightKg || 0), 0), 2)} kg</td>
+                    <td>{money(group.items.reduce((sum, s) => sum + (s.fiscalBoxQuote || 0), 0))}</td>
                     
                     {uniqueProducts.map((prodName) => {
                       const qty = group.items.reduce((sum, s) => {
@@ -671,7 +662,7 @@ function LojaReportContent() {
                     {viewMode === 'geral' && <td>{money(groupPagar)}</td>}
                     {viewMode === 'geral' && <td></td>}
                     <td>{money(groupFunrural)}</td>
-                    <td>{money(groupNFe)}</td>
+                    <td>{group.items.map(s => s.nfeNumbers).filter(Boolean).join(', ') || '-'}</td>
        
                     {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: groupLucro < 0 ? 'red' : 'green'}}>{money(groupLucro)}</td>}
        
@@ -693,6 +684,8 @@ function LojaReportContent() {
               <td></td>
               {viewMode !== 'cliente' && <td></td>}
               <td></td>
+              <td>{formatFiscal(visibleData.reduce((sum, s) => sum + (s.fiscalWeightKg || 0), 0), 2)} kg</td>
+              <td>{money(visibleData.reduce((sum, s) => sum + (s.fiscalBoxQuote || 0), 0))}</td>
               
               {uniqueProducts.map((prodName) => {
                 const qty = getProductTotalQty(prodName);
@@ -710,7 +703,7 @@ function LojaReportContent() {
               {viewMode === 'geral' && <td>{money(totalPagar)}</td>}
               {viewMode === 'geral' && <td></td>}
               <td>{money(totalFunrural)}</td>
-              <td>{money(totalNFe)}</td>
+              <td>{visibleData.map(s => s.nfeNumbers).filter(Boolean).join(', ') || '-'}</td>
  
               {viewMode === 'geral' && <td style={{fontWeight: 'bold', color: totalLucro < 0 ? 'red' : 'green'}}>{money(totalLucro)}</td>}
  

@@ -85,6 +85,7 @@ export default function EditSalePage() {
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
+  const [hasFiscalData, setHasFiscalData] = useState(false);
   
   const [calculation, setCalculation] = useState<Calculation | null>(null);
 
@@ -104,6 +105,7 @@ export default function EditSalePage() {
         setCustomers(customerOptions);
 
         if (saleData) {
+          setHasFiscalData(Boolean(saleData.fiscalValueSource === 'fiscal_document' || (saleData.fiscalDocuments || []).length));
           setOrderNumber(saleData.orderNumber || '');
           setDate(saleData.date ? saleData.date.slice(0, 10) : today);
           setProducerId(saleData.producerId?._id || saleData.producerId || '');
@@ -401,6 +403,7 @@ export default function EditSalePage() {
                   <div className={`items-row ${saleType === 'compra_venda' ? 'compra-venda-row' : 'particular-row'}`} key={item.id}>
                     <select
                       value={item.productId}
+                      disabled={hasFiscalData}
                       onChange={(event) => updateItem(item.id, 'productId', event.target.value)}
                       required
                     >
@@ -413,6 +416,7 @@ export default function EditSalePage() {
                         min="0.001"
                         step="any"
                         value={item.quantityBags || ''}
+                        disabled={hasFiscalData}
                         onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
                       />
                       <span>{getUnitSuffix()}</span>
@@ -423,6 +427,7 @@ export default function EditSalePage() {
                         min="0.1"
                         step="any"
                         value={item.bagWeightKg || ''}
+                        disabled={hasFiscalData}
                         onChange={(event) => updateItem(item.id, 'bagWeightKg', event.target.value)}
                         required
                       />
@@ -435,6 +440,7 @@ export default function EditSalePage() {
                         step="any"
                         placeholder={String(item.quantityBags * item.bagWeightKg)}
                         value={item.quantityKg !== undefined ? item.quantityKg : ''}
+                        disabled={hasFiscalData}
                         onChange={(event) => updateItem(item.id, 'quantityKg', event.target.value)}
                       />
                       <span>kg</span>
@@ -451,6 +457,7 @@ export default function EditSalePage() {
                         onValueChange={(values) => {
                           updateItem(item.id, 'costPerBag', String(values.floatValue || 0));
                         }}
+                        disabled={hasFiscalData}
                         placeholder="R$ 0,00"
                         required
                       />
@@ -466,6 +473,7 @@ export default function EditSalePage() {
                       onValueChange={(values) => {
                         updateItem(item.id, 'pricePerBag', String(values.floatValue || 0));
                       }}
+                      disabled={hasFiscalData}
                       placeholder="R$ 0,00"
                       required
                     />
@@ -473,7 +481,7 @@ export default function EditSalePage() {
                       type="button"
                       className="link-action danger"
                       onClick={() => removeItem(item.id)}
-                      disabled={items.length === 1}
+                      disabled={items.length === 1 || hasFiscalData}
                     >
                       Excluir
                     </button>
@@ -481,7 +489,8 @@ export default function EditSalePage() {
                 );
               })}
             </div>
-            <button type="button" className="link-action add-item-btn" onClick={addItem}>Adicionar Item</button>
+            {!hasFiscalData && <button type="button" className="link-action add-item-btn" onClick={addItem}>Adicionar Item</button>}
+            {hasFiscalData && <p style={{ color: '#526052' }}>Itens, pesos e valores fiscais estão bloqueados porque a NF vinculada é a fonte oficial.</p>}
           </section>
 
           <section className="panel form-section">

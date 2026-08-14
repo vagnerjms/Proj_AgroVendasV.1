@@ -414,7 +414,6 @@ export default function EditSalePage() {
                         step="any"
                         value={item.quantityBags || ''}
                         onChange={(event) => updateItem(item.id, 'quantityBags', event.target.value)}
-                        required
                       />
                       <span>{getUnitSuffix()}</span>
                     </label>

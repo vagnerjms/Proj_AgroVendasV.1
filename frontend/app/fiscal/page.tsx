@@ -103,6 +103,7 @@ export default function FiscalPage() {
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState('');
+  const [adjustOrderAmount, setAdjustOrderAmount] = useState(false);
 
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -199,6 +200,7 @@ export default function FiscalPage() {
   function openLinkForm(row: FiscalRow) {
     setSelectedRow(row);
     setSelectedDocument(row.fiscal ?? null);
+    setAdjustOrderAmount(false);
     
     const amount = row.type === 'sale' 
       ? (row.order as SalesOrder).totalParticularAmount 
@@ -256,6 +258,7 @@ export default function FiscalPage() {
         amount: Number(form.amount),
         status: form.status,
         issuedAt: form.issuedAt,
+        adjustOrderAmount: adjustOrderAmount,
       };
       
       if (form.number) payload.number = form.number;
@@ -528,6 +531,18 @@ export default function FiscalPage() {
                   <option value="divergent">Divergente</option>
                   <option value="cancelled">Cancelada</option>
                 </select>
+              </label>
+              
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: 'span 2', cursor: 'pointer', margin: '0.5rem 0' }}>
+                <input
+                  type="checkbox"
+                  checked={adjustOrderAmount}
+                  onChange={(e) => setAdjustOrderAmount(e.target.checked)}
+                  style={{ width: 'auto', margin: 0 }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 'normal' }}>
+                  Ajustar valor do pedido para bater com o valor da nota (R$ {form.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                </span>
               </label>
               <label>Upload PDF/XML/imagem
                 <input

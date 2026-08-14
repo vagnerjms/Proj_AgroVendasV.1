@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsMongoId, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsIn, IsMongoId, IsNumber, IsOptional, IsString, Min, IsBoolean } from 'class-validator';
 import { FISCAL_DOCUMENT_STATUSES, FiscalDocumentStatus } from '../schemas/fiscal-document.schema';
 
 export class CreateFiscalDocumentDto {
@@ -46,4 +46,8 @@ export class CreateFiscalDocumentDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  adjustOrderAmount?: boolean;
 }

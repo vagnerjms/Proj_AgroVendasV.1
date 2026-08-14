@@ -87,11 +87,49 @@ export class FiscalDocumentsService {
     };
   }
 
+  private async adjustOrderAmount(sId?: string, pId?: string, amount?: number) {
+    if (!amount || amount <= 0) return;
+    if (sId) {
+      const salesOrder = await this.salesOrderModel.findOne({ _id: sId, isDeleted: false });
+      if (salesOrder && salesOrder.items?.length > 0) {
+        const item = salesOrder.items[0];
+        let qtyBags = item.quantityBags || 0;
+        if (qtyBags === 0 && item.quantityKg > 0) {
+          qtyBags = item.quantityKg / (item.bagWeightKg || 25);
+        }
+        if (qtyBags > 0) {
+          item.pricePerBag = Math.round((amount / qtyBags) * 10000) / 10000;
+          item.lineTotal = Math.round(qtyBags * item.pricePerBag * 100) / 100;
+          await salesOrder.save();
+        }
+      }
+    } else if (pId) {
+      const purchaseOrder = await this.purchaseOrderModel.findOne({ _id: pId, isDeleted: false });
+      if (purchaseOrder && purchaseOrder.items?.length > 0) {
+        const item = purchaseOrder.items[0];
+        let qtyBags = item.quantityBags || 0;
+        if (qtyBags === 0 && item.quantityKg > 0) {
+          qtyBags = item.quantityKg / (item.bagWeightKg || 25);
+        }
+        if (qtyBags > 0) {
+          item.costPerBag = Math.round((amount / qtyBags) * 10000) / 10000;
+          item.lineTotal = Math.round(qtyBags * item.costPerBag * 100) / 100;
+          await purchaseOrder.save();
+        }
+      }
+    }
+  }
+
   async create(dto: CreateFiscalDocumentDto) {
     if (!dto.salesOrderId && !dto.purchaseOrderId) {
       throw new BadRequestException('Venda ou compra deve ser informada.');
     }
-    const order = await this.findOrder(dto.salesOrderId, dto.purchaseOrderId);
+    const sId = dto.salesOrderId;
+    const pId = dto.purchaseOrderId;
+    if (dto.adjustOrderAmount && dto.amount && dto.amount > 0) {
+      await this.adjustOrderAmount(sId, pId, dto.amount);
+    }
+    const order = await this.findOrder(sId, pId);
     const status = this.resolveStatus(dto.status, dto.amount, order);
     const fiscalDocument = await this.fiscalDocumentModel.create({
       ...dto,
@@ -115,12 +153,18 @@ export class FiscalDocumentsService {
     if (!existing) {
       throw new NotFoundException('Documento fiscal nao encontrado.');
     }
-    const order = await this.findOrder(
-      dto.salesOrderId ?? existing.salesOrderId?.toString(),
-      dto.purchaseOrderId ?? existing.purchaseOrderId?.toString()
-    );
+
+    const sId = dto.salesOrderId ?? existing.salesOrderId?.toString();
+    const pId = dto.purchaseOrderId ?? existing.purchaseOrderId?.toString();
     const nextAmount = dto.amount ?? existing.amount;
+
+    if (dto.adjustOrderAmount && nextAmount > 0) {
+      await this.adjustOrderAmount(sId, pId, nextAmount);
+    }
+
+    const order = await this.findOrder(sId, pId);
     const status = this.resolveStatus(dto.status ?? existing.status, nextAmount, order);
+
     const updated = await this.fiscalDocumentModel
       .findByIdAndUpdate(
         id,
@@ -137,8 +181,6 @@ export class FiscalDocumentsService {
       .lean();
     await this.updateOrderFiscalStatus(order, status);
 
-    const sId = dto.salesOrderId ?? existing.salesOrderId?.toString();
-    const pId = dto.purchaseOrderId ?? existing.purchaseOrderId?.toString();
     if (sId) await this.salesOrdersService.recalculateFinancials(sId);
     if (pId) await this.purchaseOrdersService.recalculateFinancials(pId);
 

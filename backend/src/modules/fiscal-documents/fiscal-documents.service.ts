@@ -158,7 +158,7 @@ export class FiscalDocumentsService {
     const pId = dto.purchaseOrderId ?? existing.purchaseOrderId?.toString();
     const nextAmount = dto.amount ?? existing.amount;
 
-    if (dto.adjustOrderAmount && nextAmount > 0) {
+    if (dto.adjustOrderAmount && nextAmount !== undefined && nextAmount > 0) {
       await this.adjustOrderAmount(sId, pId, nextAmount);
     }
 

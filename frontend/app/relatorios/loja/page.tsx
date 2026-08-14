@@ -554,20 +554,20 @@ function LojaReportContent() {
         <table className="loja-table" style={{ minWidth: uniqueProducts.length > 0 ? `${1000 + uniqueProducts.length * 150}px` : '1000px' }}>
           <thead className="header-green" style={{background: headerBgColor}}>
             <tr>
-              <th>Part.</th>
-              <th>Data</th>
-              {viewMode !== 'cliente' && <th>Produtor</th>}
-              <th>Destinatário</th>
-              
-              {uniqueProducts.map((prodName) => (
-                <th key={prodName} style={{background: '#c8e6c9', color: '#333', whiteSpace: 'nowrap'}}>
-                  {prodName}
-                </th>
-              ))}
-              
-              <th>Peso NF (kg)</th>
-              <th>Cotacao caixa</th>
-              <th>Valor NF</th>
+               <th>Part.</th>
+               <th>Data</th>
+               {viewMode !== 'cliente' && <th>Produtor</th>}
+               <th>Destinatário</th>
+               <th>Peso NF (kg)</th>
+               <th>Cotacao caixa</th>
+               
+               {uniqueProducts.map((prodName) => (
+                 <th key={prodName} style={{background: '#c8e6c9', color: '#333', whiteSpace: 'nowrap'}}>
+                   {prodName}
+                 </th>
+               ))}
+               
+               <th>Valor NF</th>
               <th>{viewMode === 'cliente' ? 'Líq. a Pagar' : 'Líq. a Receber'}</th>
               <th>Venc. Receber</th>
               {viewMode === 'geral' && <th style={{background: '#ffcdd2', color: '#333'}}>Líq. a Pagar</th>}

@@ -49,20 +49,17 @@ async function run() {
 
       if (salesOrder.items && salesOrder.items.length > 0) {
         const item = salesOrder.items[0];
-        let qtyBags = item.quantityBags || 0;
+        const pricePerBag = item.pricePerBag || 0;
         
-        if (qtyBags === 0 && item.quantityKg > 0) {
-          qtyBags = item.quantityKg / (item.bagWeightKg || 25);
-        }
-
-        if (qtyBags > 0) {
-          const newPricePerBag = Math.round((targetAmount / qtyBags) * 10000) / 10000;
-          const newLineTotal = Math.round(qtyBags * newPricePerBag * 100) / 100;
+        if (pricePerBag > 0) {
+          const qtyBags = Math.round((targetAmount / pricePerBag) * 1000) / 1000;
+          const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
           
-          console.log(`  - Ajustando item: Preço unitário R$ ${item.pricePerBag} -> R$ ${newPricePerBag}`);
+          console.log(`  - Ajustando item: Sacos R$ ${item.quantityBags} -> ${qtyBags} | Peso R$ ${item.quantityKg} -> ${qtyKg}`);
           
-          item.pricePerBag = newPricePerBag;
-          item.lineTotal = newLineTotal;
+          item.quantityBags = qtyBags;
+          item.quantityKg = qtyKg;
+          item.lineTotal = Math.round(qtyBags * pricePerBag * 100) / 100;
 
           await salesOrderModel.findByIdAndUpdate(orderId, { items: salesOrder.items });
           
@@ -75,7 +72,7 @@ async function run() {
           console.log(`  - Venda ${salesOrder.orderNumber} recalculada e sincronizada com sucesso!`);
           updatedCount++;
         } else {
-          console.log(`  - Erro: Venda sem quantidade válida para recalcular.`);
+          console.log(`  - Erro: Venda sem preço unitário válido para recalcular.`);
         }
       }
     }

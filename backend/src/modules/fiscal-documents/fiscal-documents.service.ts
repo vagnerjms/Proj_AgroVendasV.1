@@ -72,16 +72,14 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
         
         if (salesOrder.items && salesOrder.items.length > 0) {
           const item = salesOrder.items[0];
-          let qtyBags = item.quantityBags || 0;
-          if (qtyBags === 0 && item.quantityKg > 0) {
-            qtyBags = item.quantityKg / (item.bagWeightKg || 25);
-          }
-          if (qtyBags > 0) {
-            const newPricePerBag = Math.round((targetAmount / qtyBags) * 10000) / 10000;
-            const newLineTotal = Math.round(qtyBags * newPricePerBag * 100) / 100;
+          const pricePerBag = item.pricePerBag || 0;
+          if (pricePerBag > 0) {
+            const qtyBags = Math.round((targetAmount / pricePerBag) * 1000) / 1000;
+            const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
             
-            item.pricePerBag = newPricePerBag;
-            item.lineTotal = newLineTotal;
+            item.quantityBags = qtyBags;
+            item.quantityKg = qtyKg;
+            item.lineTotal = Math.round(qtyBags * pricePerBag * 100) / 100;
 
             await this.salesOrderModel.findByIdAndUpdate(orderId, { items: salesOrder.items });
             await this.salesOrdersService.recalculateFinancials(orderId);
@@ -153,13 +151,13 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
       const salesOrder = await this.salesOrderModel.findOne({ _id: sId, isDeleted: false });
       if (salesOrder && salesOrder.items?.length > 0) {
         const item = salesOrder.items[0];
-        let qtyBags = item.quantityBags || 0;
-        if (qtyBags === 0 && item.quantityKg > 0) {
-          qtyBags = item.quantityKg / (item.bagWeightKg || 25);
-        }
-        if (qtyBags > 0) {
-          item.pricePerBag = Math.round((amount / qtyBags) * 10000) / 10000;
-          item.lineTotal = Math.round(qtyBags * item.pricePerBag * 100) / 100;
+        const pricePerBag = item.pricePerBag || 0;
+        if (pricePerBag > 0) {
+          const qtyBags = Math.round((amount / pricePerBag) * 1000) / 1000;
+          const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
+          item.quantityBags = qtyBags;
+          item.quantityKg = qtyKg;
+          item.lineTotal = Math.round(qtyBags * pricePerBag * 100) / 100;
           await salesOrder.save();
         }
       }
@@ -167,13 +165,13 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
       const purchaseOrder = await this.purchaseOrderModel.findOne({ _id: pId, isDeleted: false });
       if (purchaseOrder && purchaseOrder.items?.length > 0) {
         const item = purchaseOrder.items[0];
-        let qtyBags = item.quantityBags || 0;
-        if (qtyBags === 0 && item.quantityKg > 0) {
-          qtyBags = item.quantityKg / (item.bagWeightKg || 25);
-        }
-        if (qtyBags > 0) {
-          item.costPerBag = Math.round((amount / qtyBags) * 10000) / 10000;
-          item.lineTotal = Math.round(qtyBags * item.costPerBag * 100) / 100;
+        const costPerBag = item.costPerBag || 0;
+        if (costPerBag > 0) {
+          const qtyBags = Math.round((amount / costPerBag) * 1000) / 1000;
+          const qtyKg = Math.round(qtyBags * (item.bagWeightKg || 25) * 1000) / 1000;
+          item.quantityBags = qtyBags;
+          item.quantityKg = qtyKg;
+          item.lineTotal = Math.round(qtyBags * costPerBag * 100) / 100;
           await purchaseOrder.save();
         }
       }

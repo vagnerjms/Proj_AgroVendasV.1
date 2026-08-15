@@ -7,7 +7,7 @@ import './styles.css';
 export const metadata: Metadata = {
   title: 'AgroVenda Broker',
   description: 'Backoffice operacional e agenda de vencimentos.',
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

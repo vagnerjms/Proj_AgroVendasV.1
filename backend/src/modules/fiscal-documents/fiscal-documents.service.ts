@@ -541,7 +541,11 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
   }
 
   private async buildQuery(filters: FiscalFilters) {
-    const query: FilterQuery<FiscalDocument> = { isDeleted: false };
+    const query: FilterQuery<FiscalDocument> = {
+      $and: [
+        { $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }] },
+      ],
+    };
     if (filters.orderNumber) query.orderNumber = { $regex: filters.orderNumber, $options: 'i' };
     if (filters.number) query.number = { $regex: filters.number, $options: 'i' };
     if (filters.accessKey) query.accessKey = { $regex: filters.accessKey, $options: 'i' };
@@ -567,10 +571,10 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
       const salesOrders = await this.salesOrderModel.find(salesOrderQuery).select('_id').lean();
       const purchaseOrders = await this.purchaseOrderModel.find(purchaseOrderQuery).select('_id').lean();
       
-      query.$or = [
+      query.$and!.push({ $or: [
         { salesOrderId: { $in: salesOrders.map((order) => order._id) } },
         { purchaseOrderId: { $in: purchaseOrders.map((order) => order._id) } }
-      ];
+      ] });
     }
 
     return query;

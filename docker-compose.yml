@@ -51,14 +51,20 @@ services:
       MONGO_URI: ${MONGODB_URI:-mongodb://mongodb:27017/agrovenda_broker}
       JWT_SECRET: ${JWT_SECRET:-change_me_in_dev}
       PDF_SERVICE_URL: ${PDF_SERVICE_URL:-http://pdf-worker:3002}
+      FISCAL_IMPORT_ON_STARTUP: ${FISCAL_IMPORT_ON_STARTUP:-true}
+      FISCAL_IMPORT_DIR: /app/import/storage/fiscal-documents
+      FISCAL_IMPORT_MANIFEST: /app/import/fiscal-reconciliation.json
+      FISCAL_IMPORT_DATABASE_JSON: /app/import/database.json
+      FISCAL_IMPORT_OUTPUT: /app/import/output
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
       TSC_WATCHFILE: PriorityPollingInterval
       TSC_WATCHDIRECTORY: RecursiveDirectoryUsingFsWatchFile
     volumes:
       - ./backend:/app
+      - ./import:/app/import
       - backend_node_modules:/app/node_modules
-    command: npm run start:dev
+    command: sh -c "npm run fiscal:import && npm run start:dev"
 
   frontend:
     build:

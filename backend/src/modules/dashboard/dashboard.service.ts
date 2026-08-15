@@ -168,7 +168,11 @@ export class DashboardService {
 
     const [payments, fiscalDocs] = await Promise.all([
       this.paymentModel.find({ isDeleted: false, salesOrderId: { $in: saleIds } }).lean(),
-      this.fiscalDocumentModel.find({ isDeleted: false, salesOrderId: { $in: saleIds } }).lean()
+      this.fiscalDocumentModel.find({
+        salesOrderId: { $in: saleIds },
+        $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
+        status: { $ne: 'cancelled' },
+      }).lean()
     ]);
 
     const result = sales.map((sale: any) => {
@@ -185,12 +189,16 @@ export class DashboardService {
 
       const nfeValue = saleDocs.reduce((sum, f) => sum + (f.amount || 0), 0);
       const nfeNumbers = saleDocs.map(f => f.number).filter(Boolean).join(', ');
-      const fiscalWeightKg = saleDocs.reduce((sum, f: any) => sum + (f.totalWeightKg || 0), 0) || sale.fiscalWeightKg || 0;
-      const fiscalUnitPrice = saleDocs.find((f: any) => f.unitPrice !== undefined)?.unitPrice ?? sale.fiscalUnitPrice;
-      const fiscalTotalAmount = nfeValue || sale.fiscalTotalAmount || 0;
+      const fiscalWeightKg = saleDocs.length
+        ? saleDocs.reduce((sum, f: any) => sum + (f.totalWeightKg || 0), 0)
+        : (sale.fiscalWeightKg || 0);
+      const fiscalUnitPrice = saleDocs.length
+        ? saleDocs.find((f: any) => f.unitPrice !== undefined)?.unitPrice
+        : sale.fiscalUnitPrice;
+      const fiscalTotalAmount = saleDocs.length ? nfeValue : (sale.fiscalTotalAmount || 0);
       const fiscalBoxQuantity = fiscalWeightKg / 29;
       const fiscalBoxQuote = fiscalUnitPrice === undefined ? 0 : fiscalWeightKg * fiscalUnitPrice;
-      const fiscalSource = saleDocs.length && (fiscalWeightKg || fiscalTotalAmount) ? 'fiscal_document' : 'commercial_order';
+      const fiscalSource = saleDocs.length ? 'fiscal_document' : 'commercial_order';
 
       return {
         ...sale,

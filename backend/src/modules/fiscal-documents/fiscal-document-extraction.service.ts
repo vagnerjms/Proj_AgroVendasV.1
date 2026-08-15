@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { readFileSync } from 'fs';
+import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { execFileSync } from 'child_process';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 export type ExtractedFiscalItem = {
   description: string;
@@ -40,10 +42,30 @@ export class FiscalDocumentExtractionService {
     if (extension === 'xml') return this.extractXml(buffer.toString('utf8'));
 
     let text = '';
-    try {
-      text = execFileSync('tesseract', [filePath, 'stdout', '-l', 'por+eng'], { encoding: 'utf8', timeout: 120000 });
-    } catch {
-      throw new Error('OCR indisponível: instale o Tesseract no servidor para processar PDF/imagem.');
+    if (extension === 'pdf') {
+      try {
+        text = execFileSync('pdftotext', ['-layout', filePath, '-'], { encoding: 'utf8', timeout: 120000 });
+      } catch {
+        // PDF escaneado sem camada de texto: tentar OCR abaixo.
+      }
+    }
+
+    if (!text.trim()) {
+      let ocrFilePath = filePath;
+      let ocrDirectory: string | undefined;
+      try {
+        if (extension === 'pdf') {
+          ocrDirectory = mkdtempSync(join(tmpdir(), 'agrovenda-nf-'));
+          const imageBase = join(ocrDirectory, 'page');
+          execFileSync('pdftoppm', ['-f', '1', '-l', '1', '-png', '-singlefile', filePath, imageBase], { timeout: 120000 });
+          ocrFilePath = `${imageBase}.png`;
+        }
+        text = execFileSync('tesseract', [ocrFilePath, 'stdout', '-l', 'por+eng'], { encoding: 'utf8', timeout: 120000 });
+      } catch {
+        throw new Error('Leitura fiscal indisponível: instale pdftotext para PDFs textuais ou Tesseract para PDFs escaneados/imagens.');
+      } finally {
+        if (ocrDirectory) rmSync(ocrDirectory, { recursive: true, force: true });
+      }
     }
     return this.extractText(text, 'ocr');
   }

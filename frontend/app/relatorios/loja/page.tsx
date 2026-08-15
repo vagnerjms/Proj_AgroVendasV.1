@@ -135,8 +135,10 @@ function LojaReportContent() {
   };
 
   const getFiscalQuote = (s: any) => {
-    if (s.fiscalSource === 'fiscal_document' && s.fiscalWeightKg !== undefined && s.fiscalUnitPrice !== undefined) {
-      return s.fiscalWeightKg * s.fiscalUnitPrice;
+    if (s.fiscalSource === 'fiscal_document') {
+      return s.fiscalWeightKg !== undefined && s.fiscalUnitPrice !== undefined
+        ? s.fiscalWeightKg * s.fiscalUnitPrice
+        : undefined;
     }
     return s.fiscalBoxQuote ?? 0;
   };
@@ -159,7 +161,7 @@ function LojaReportContent() {
   const totalSacos = visibleData.reduce((acc, s) => acc + (s.totalBags || 0), 0);
   const hasCenoura = uniqueProducts.some(p => p.toLowerCase().includes('cenoura'));
   const bagsLabel = hasCenoura ? 'Total de caixas' : 'Total de sacos';
-  const totalKg = visibleData.reduce((acc, s) => acc + (s.fiscalWeightKg || s.totalKg || 0), 0);
+  const totalKg = visibleData.reduce((acc, s) => acc + (s.fiscalSource === 'fiscal_document' ? (s.fiscalWeightKg || 0) : (s.totalKg || 0)), 0);
   const totalParticular = visibleData.reduce((acc, s) => acc + getGrossAmount(s), 0);
   const totalReceber = visibleData.reduce((acc, s) => acc + getNetAmount(s), 0);
   const totalPagar = visibleData.reduce((acc, s) => {
@@ -186,7 +188,8 @@ function LojaReportContent() {
   // Entities count
   const entities = new Set(visibleData.map(s => viewMode === 'cliente' ? s.customerName : s.producerName));
   
-  function money(val: number) {
+  function money(val?: number) {
+    if (val === undefined || val === null) return '-';
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
   
@@ -414,7 +417,7 @@ function LojaReportContent() {
     const matchedItems = items.filter((item: any) => item.productId?.name === productName);
     if (matchedItems.length === 0) return '-';
 
-    const totalKg = productName.toLowerCase().includes('cenoura') && sale.fiscalSource === 'fiscal_document'
+    const totalKg = sale.fiscalSource === 'fiscal_document'
       ? sale.fiscalWeightKg
       : matchedItems.reduce((sum: number, item: any) => sum + (item.quantityKg || (item.quantityBags || 0) * (item.bagWeightKg || 0)), 0);
     return `${formatFiscal(totalKg, sale.fiscalDecimalPlaces?.weight)} kg`;
@@ -652,7 +655,7 @@ function LojaReportContent() {
                     {uniqueProducts.map((prodName) => {
                       const qty = group.items.reduce((sum, s) => {
                         const matchedItems = (s.items || []).filter((item: any) => item.productId?.name === prodName);
-                        if (prodName.toLowerCase().includes('cenoura') && s.fiscalSource === 'fiscal_document') {
+                        if (s.fiscalSource === 'fiscal_document') {
                           return sum + (s.fiscalWeightKg || 0);
                         }
                         return sum + matchedItems.reduce((itemSum: number, item: any) => itemSum + (item.quantityKg || (item.quantityBags || 0) * (item.bagWeightKg || 0)), 0);
@@ -664,7 +667,7 @@ function LojaReportContent() {
                         </td>
                       );
                     })}
-                    <td>{money(group.items.reduce((sum, s) => sum + getFiscalQuote(s), 0))}</td>
+                    <td>{money(group.items.reduce((sum, s) => sum + (getFiscalQuote(s) || 0), 0))}</td>
                     
                     <td>{money(groupGross)}</td>
                     <td>{money(groupNet)}</td>
@@ -703,7 +706,7 @@ function LojaReportContent() {
                   </td>
                 );
               })}
-              <td>{money(visibleData.reduce((sum, s) => sum + getFiscalQuote(s), 0))}</td>
+              <td>{money(visibleData.reduce((sum, s) => sum + (getFiscalQuote(s) || 0), 0))}</td>
               
               <td>{money(totalParticular)}</td>
               <td>{money(totalReceber)}</td>

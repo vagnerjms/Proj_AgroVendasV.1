@@ -19,6 +19,7 @@ const jsonData = {
       "bags": 742.41,
       "price_per_bag": 45.0,
       "total_value": 33408.62,
+      "due_date": "2026-08-27",
       "invoice_number": "27957662"
     },
     {
@@ -29,6 +30,7 @@ const jsonData = {
       "bags": 663.45,
       "price_per_bag": 45.0,
       "total_value": 29855.17,
+      "due_date": "2026-08-27",
       "invoice_number": "27957664"
     },
     {
@@ -39,6 +41,7 @@ const jsonData = {
       "bags": 665.0,
       "price_per_bag": 45.0,
       "total_value": 29875.0,
+      "due_date": "2026-08-27",
       "invoice_number": "27957569"
     },
     {
@@ -49,6 +52,7 @@ const jsonData = {
       "bags": 627.59,
       "price_per_bag": 45.0,
       "total_value": 28241.38,
+      "due_date": "2026-08-30",
       "invoice_number": "27967571"
     },
     {
@@ -59,6 +63,7 @@ const jsonData = {
       "bags": 545.17,
       "price_per_bag": 40.0,
       "total_value": 21806.9,
+      "due_date": "2026-09-05",
       "invoice_number": "27980432"
     },
     {
@@ -69,6 +74,7 @@ const jsonData = {
       "bags": 777.93,
       "price_per_bag": 42.0,
       "total_value": 32673.1,
+      "due_date": "2026-08-30",
       "invoice_number": "27970562"
     },
     {
@@ -79,6 +85,7 @@ const jsonData = {
       "bags": 688.28,
       "price_per_bag": 40.0,
       "total_value": 27531.03,
+      "due_date": "2026-08-31",
       "invoice_number": "27980429"
     },
     {
@@ -89,6 +96,7 @@ const jsonData = {
       "bags": 685.86,
       "price_per_bag": 45.0,
       "total_value": 30863.79,
+      "due_date": "2026-09-02",
       "invoice_number": "27998942"
     },
     {
@@ -99,6 +107,7 @@ const jsonData = {
       "bags": 700.0,
       "price_per_bag": 40.0,
       "total_value": 28000.0,
+      "due_date": "2026-08-31",
       "invoice_number": "27977672"
     },
     {
@@ -109,6 +118,7 @@ const jsonData = {
       "bags": 551.66,
       "price_per_bag": 45.0,
       "total_value": 24824.48,
+      "due_date": "2026-09-04",
       "invoice_number": "27999695"
     },
     {
@@ -119,6 +129,7 @@ const jsonData = {
       "bags": 388.0,
       "price_per_bag": 45.0,
       "total_value": 17460.0,
+      "due_date": "2026-09-02",
       "invoice_number": "27999696"
     },
     {
@@ -129,6 +140,7 @@ const jsonData = {
       "bags": 969.66,
       "price_per_bag": 55.0,
       "total_value": 53331.03,
+      "due_date": "2026-09-05",
       "invoice_number": "28008239"
     },
     {
@@ -139,6 +151,7 @@ const jsonData = {
       "bags": 697.93,
       "price_per_bag": 55.0,
       "total_value": 38386.15,
+      "due_date": "2026-09-05",
       "invoice_number": "28003902"
     },
     {
@@ -149,6 +162,7 @@ const jsonData = {
       "bags": 570.0,
       "price_per_bag": 55.0,
       "total_value": 31350.0,
+      "due_date": "2026-09-05",
       "invoice_number": "28007928"
     },
     {
@@ -159,6 +173,7 @@ const jsonData = {
       "bags": 576.0,
       "price_per_bag": 55.0,
       "total_value": 31680.0,
+      "due_date": "2026-09-06",
       "invoice_number": "28017539"
     },
     {
@@ -169,6 +184,7 @@ const jsonData = {
       "bags": 629.0,
       "price_per_bag": 55.0,
       "total_value": 34595.0,
+      "due_date": "2026-09-06",
       "invoice_number": "28017525"
     },
     {
@@ -179,6 +195,7 @@ const jsonData = {
       "bags": 548.0,
       "price_per_bag": 55.0,
       "total_value": 30140.0,
+      "due_date": "2026-09-07",
       "invoice_number": "28021552"
     },
     {
@@ -189,6 +206,7 @@ const jsonData = {
       "bags": 662.07,
       "price_per_bag": 62.0,
       "total_value": 41048.28,
+      "due_date": "2026-09-08",
       "invoice_number": "28033001"
     },
     {
@@ -199,6 +217,7 @@ const jsonData = {
       "bags": 367.0,
       "price_per_bag": 65.0,
       "total_value": 23855.0,
+      "due_date": "2026-09-10",
       "invoice_number": "28042907"
     },
     {
@@ -209,6 +228,7 @@ const jsonData = {
       "bags": 521.9,
       "price_per_bag": 65.0,
       "total_value": 33923.28,
+      "due_date": "2026-09-10",
       "invoice_number": "28042900"
     },
     {
@@ -219,6 +239,7 @@ const jsonData = {
       "bags": 641.72,
       "price_per_bag": 60.0,
       "total_value": 38503.45,
+      "due_date": "2026-09-10",
       "invoice_number": "28042894"
     },
     {
@@ -229,6 +250,7 @@ const jsonData = {
       "bags": 772.0,
       "price_per_bag": 65.0,
       "total_value": 50180.0,
+      "due_date": "2026-09-10",
       "invoice_number": "28042638"
     },
     {
@@ -239,6 +261,7 @@ const jsonData = {
       "bags": 675.17,
       "price_per_bag": 65.0,
       "total_value": 43886.21,
+      "due_date": "2026-09-12",
       "invoice_number": "28047798"
     },
     {
@@ -249,6 +272,7 @@ const jsonData = {
       "bags": 650.69,
       "price_per_bag": 65.0,
       "total_value": 42294.83,
+      "due_date": "2026-09-12",
       "invoice_number": "28053397"
     },
     {
@@ -259,6 +283,7 @@ const jsonData = {
       "bags": 708.28,
       "price_per_bag": 65.0,
       "total_value": 46037.93,
+      "due_date": "2026-09-12",
       "invoice_number": "28053399"
     },
     {
@@ -269,6 +294,7 @@ const jsonData = {
       "bags": 680.69,
       "price_per_bag": 65.0,
       "total_value": 44244.83,
+      "due_date": "2026-09-13",
       "invoice_number": "28058820"
     },
     {
@@ -279,6 +305,7 @@ const jsonData = {
       "bags": 644.14,
       "price_per_bag": 65.0,
       "total_value": 41868.97,
+      "due_date": "2026-09-14",
       "invoice_number": "28069150"
     },
     {
@@ -289,6 +316,7 @@ const jsonData = {
       "bags": 727.59,
       "price_per_bag": 65.0,
       "total_value": 47293.1,
+      "due_date": "2026-09-14",
       "invoice_number": "28069166"
     }
   ]
@@ -329,7 +357,7 @@ async function run() {
       let searchName = sale.customer.split(' ')[0]; // Ex: Hortifruti
       let customer = await customerModel.findOne({ name: { $regex: searchName, $options: 'i' }, isDeleted: false });
       if (!customer) {
-        customer = await customerModel.create({ name: sale.customer, documentType: 'cnpj', documentNumber: '00000000000000' });
+        customer = await customerModel.create({ name: sale.customer, documentType: 'cnpj', documentNumber: '00000000000000', city: 'Desconhecida', state: 'GO' });
       }
 
       salesOrder = await salesOrderModel.create({

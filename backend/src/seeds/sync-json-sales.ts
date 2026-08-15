@@ -5,8 +5,8 @@ import { Model } from 'mongoose';
 import { SalesOrder, SalesOrderDocument } from '../modules/sales-orders/schemas/sales-order.schema';
 import { FiscalDocument } from '../modules/fiscal-documents/schemas/fiscal-document.schema';
 import { SalesOrdersService } from '../modules/sales-orders/sales-orders.service';
-import { Customer } from '../modules/partners/schemas/customer.schema';
-import { Producer } from '../modules/partners/schemas/producer.schema';
+import { Customer } from '../modules/customers/schemas/customer.schema';
+import { Producer } from '../modules/producers/schemas/producer.schema';
 import { Product } from '../modules/products/schemas/product.schema';
 
 const jsonData = {

@@ -41,7 +41,6 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     console.log('FiscalDocumentsService: Iniciando sincronização automática de vendas com as notas...');
     try {
-      await this.restoreDatabaseAndCleanup();
       await this.backfillExtractedData();
       await this.syncSalesToNfe();
     } catch (err) {

@@ -371,7 +371,10 @@ export class SalesOrdersService {
     const fiscalBoxQuantity = fiscalWeightKg / 29;
     const fiscalBoxQuote = fiscalUnitPrice === undefined ? undefined : fiscalWeightKg * fiscalUnitPrice;
 
-    const merged = { ...existing.toObject() } as unknown as CalculateSalesOrderDto;
+    const merged = { 
+      ...existing.toObject(),
+      nfeTotalAmount: fiscalTotalAmount
+    } as unknown as CalculateSalesOrderDto;
     const calculation = this.calculationService.calculate(merged);
 
     const updated = await this.salesOrderModel.findByIdAndUpdate(

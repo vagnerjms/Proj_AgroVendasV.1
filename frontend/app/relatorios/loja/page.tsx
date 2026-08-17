@@ -111,7 +111,9 @@ function LojaReportContent() {
 
   const getNetAmount = (s: any) => {
     // O líquido a receber deve ser sempre o bruto descontado do FUNRURAL
-    return s.fiscalSource === 'fiscal_document' ? (s.fiscalTotalAmount ?? s.nfeValue ?? 0) : ((s.totalParticularAmount ?? 0) - (s.funruralRetentionAmount ?? 0));
+    const gross = getGrossAmount(s);
+    const funrural = getFunruralAmount(s);
+    return gross - funrural;
   };
 
   const getRecebidoAmount = (s: any) => {

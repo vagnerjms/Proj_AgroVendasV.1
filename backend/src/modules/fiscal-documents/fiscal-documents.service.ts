@@ -41,6 +41,8 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     console.log('FiscalDocumentsService: Iniciando sincronização automática de vendas com as notas...');
     try {
+      const orders = await this.salesOrderModel.find({ isDeleted: false }).select('orderNumber').lean();
+      console.log('EXISTING_ORDERS:', JSON.stringify(orders.map(o => o.orderNumber)));
       await this.importSalesFromJson();
       await this.backfillExtractedData();
       await this.syncSalesToNfe();

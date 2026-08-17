@@ -213,36 +213,101 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
   }
 
   async syncSalesToNfe() {
-    const fiscalDocs = await this.fiscalDocumentModel.find({ 
-      isDeleted: false, 
-      salesOrderId: { $exists: true, $ne: null },
-      status: { $ne: 'cancelled' } 
+    const salesOrderModel = this.fiscalDocumentModel.db.model('SalesOrder');
+
+    // Mapeamento dinâmico de Nota Fiscal -> Pedido de Venda
+    const nfeToOrderMapping: Record<string, string[]> = {
+      '27957662': ['VP001', 'VP09711'],
+      '27957664': ['VP002', 'VP09712'],
+      '27957569': ['VP003', 'VP09713'],
+      '27967571': ['VP004', 'VP09714'],
+      '27970562': ['VP007', 'VP09715'],
+      '27977672': ['VP010', 'VP09716'],
+      '27980429': ['VP008', 'VP09717'],
+      '27980432': ['VP006', 'VP09718'],
+      '27998942': ['VP009', 'VP09720'],
+      '27999695': ['VP011', 'VP09721'],
+      '27999696': ['VP012', 'VP09722'],
+      '28003902': ['VP014', 'VP09723'],
+      '28008239': ['VP013', 'VP09724'],
+      '28007928': ['VP015', 'VP09725'],
+      '28017525': ['VP017', 'VP09726'],
+      '28017539': ['VP016', 'VP09727'],
+      '28021552': ['VP018', 'VP09729'],
+      '28024828': ['VP09730'],
+      '28033001': ['VP019', 'VP09731'],
+      '28042907': ['VP020', 'VP09732'],
+      '28042638': ['VP023', 'VP09733'],
+      '28042894': ['VP022', 'VP09728'],
+      '28047798': ['VP024', 'VP09735'],
+      '28053397': ['VP025', 'VP09736'],
+      '28053399': ['VP026', 'VP09738'],
+      '28058820': ['VP027', 'VP09737'],
+      '28069150': ['VP028', 'VP09742'],
+      '28069166': ['VP029', 'VP09743'],
+      '28059766': ['VP09739'],
+      '28067709': ['VP09740'],
+      '28042900': ['VP021', 'VP09730']
+    };
+
+    // 1. Tentar auto-vincular Notas que não estão associadas ou têm associações desatualizadas
+    const unassociatedDocs = await this.fiscalDocumentModel.find({
+      isDeleted: false,
+      status: { $ne: 'cancelled' }
     }).exec();
 
+    console.log(`FiscalDocumentsService: Iniciando auto-vínculo de ${unassociatedDocs.length} notas...`);
+
     let updatedCount = 0;
-    for (const doc of fiscalDocs) {
-      if (!doc.salesOrderId || !doc.amount || doc.amount <= 0) {
-        continue;
+    for (const doc of unassociatedDocs) {
+      let salesOrder = null;
+
+      // Se já tem salesOrderId, buscar a venda
+      if (doc.salesOrderId) {
+        salesOrder = await salesOrderModel.findOne({ _id: doc.salesOrderId, isDeleted: false }).exec();
       }
 
-      const orderId = doc.salesOrderId.toString();
-      const salesOrder = await this.salesOrderModel.findOne({ _id: orderId, isDeleted: false }).exec();
-      if (!salesOrder) continue;
+      // Se não encontrou, tenta buscar usando o mapeamento do número da nota
+      if (!salesOrder && doc.number && nfeToOrderMapping[doc.number]) {
+        const possibleOrders = nfeToOrderMapping[doc.number];
+        salesOrder = await salesOrderModel.findOne({
+          orderNumber: { $in: possibleOrders },
+          isDeleted: false
+        }).exec();
 
-      const currentAmount = salesOrder.totalParticularAmount || 0;
-      const targetAmount = doc.amount;
-      const currentWeight = salesOrder.totalKg || 0;
-      const targetWeight = doc.totalWeightKg || 0;
+        if (salesOrder) {
+          console.log(`Auto-Link: Associando nota ${doc.number} à venda ${salesOrder.orderNumber}`);
+          await this.fiscalDocumentModel.updateOne(
+            { _id: doc._id },
+            {
+              $set: {
+                salesOrderId: salesOrder._id,
+                orderNumber: salesOrder.orderNumber,
+                adjustOrderAmount: true
+              }
+            }
+          );
+        }
+      }
 
-      const valueDivergent = Math.abs(currentAmount - targetAmount) > 0.01;
-      const weightDivergent = targetWeight > 0 && Math.abs(currentWeight - targetWeight) > 0.01;
+      // Se temos a venda associada, sincronizamos
+      if (salesOrder && doc.amount && doc.amount > 0) {
+        const orderId = salesOrder._id.toString();
+        const currentAmount = salesOrder.totalParticularAmount || 0;
+        const targetAmount = doc.amount;
+        const currentWeight = salesOrder.totalKg || 0;
+        const targetWeight = doc.totalWeightKg || 0;
 
-      if (valueDivergent || weightDivergent) {
-        console.log(`Auto-Sync: Ajustando venda ${salesOrder.orderNumber} (Valor OP: ${currentAmount} -> NF: ${targetAmount} | Peso OP: ${currentWeight} -> NF: ${targetWeight})`);
-        await this.adjustOrderAmount(orderId, undefined, targetAmount, doc.totalWeightKg);
-        await this.salesOrdersService.recalculateFinancials(orderId);
-        await this.fiscalDocumentModel.findByIdAndUpdate(doc._id, { status: 'issued' });
-        updatedCount++;
+        const valueDivergent = Math.abs(currentAmount - targetAmount) > 0.01;
+        const weightDivergent = targetWeight > 0 && Math.abs(currentWeight - targetWeight) > 0.01;
+
+        if (valueDivergent || weightDivergent) {
+          console.log(`Auto-Sync: Ajustando venda ${salesOrder.orderNumber} (Valor OP: ${currentAmount} -> NF: ${targetAmount} | Peso OP: ${currentWeight} -> NF: ${targetWeight})`);
+          await this.adjustOrderAmount(orderId, undefined, targetAmount, doc.totalWeightKg);
+          await this.salesOrdersService.recalculateFinancials(orderId);
+          await this.fiscalDocumentModel.updateOne({ _id: doc._id }, { $set: { status: 'issued' } });
+          updatedCount++;
+        }
       }
     }
     if (updatedCount > 0) {

@@ -13,6 +13,7 @@
     "sync:fiscal": "tsx src/seeds/sync-sales-to-nfe.ts",
     "sync:json-sales": "tsx src/seeds/sync-json-sales.ts",
     "restore:sales": "tsx src/seeds/restore-all-sales.ts",
+    "seed:badin": "tsx src/seeds/create-badin-sales.ts",
     "audit:fiscal": "tsx src/seeds/audit_and_reconcile_fiscal_documents.ts",
     "fiscal:import": "tsx src/seeds/import_fiscal_folder.ts"
   },

@@ -153,7 +153,8 @@ async function run() {
 
       const qtyKg = doc.totalWeightKg || 0;
       const qtyBags = Math.round((qtyKg / 29) * 1000) / 1000;
-      const unitPrice = qtyBags > 0 ? Math.round((doc.amount / qtyBags) * 10000) / 10000 : 0;
+      const docAmount = doc.amount || 0;
+      const unitPrice = qtyBags > 0 ? Math.round((docAmount / qtyBags) * 10000) / 10000 : 0;
 
       salesOrder = await salesOrderModel.create({
         orderNumber: doc.orderNumber,
@@ -169,7 +170,7 @@ async function run() {
             bagWeightKg: 29,
             quantityKg: qtyKg,
             pricePerBag: unitPrice,
-            lineTotal: doc.amount,
+            lineTotal: docAmount,
           }
         ],
         dueDate: doc.issuedAt || new Date(),

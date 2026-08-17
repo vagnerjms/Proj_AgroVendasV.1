@@ -12,7 +12,7 @@ export type FiscalFileKind = (typeof FISCAL_FILE_KINDS)[number];
 
 @Schema({ _id: false })
 export class FiscalDocumentItem {
-  @Prop({ trim: true, required: true })
+  @Prop({ type: String, trim: true, required: true })
   description!: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Product' })
@@ -27,13 +27,13 @@ export class FiscalDocumentItem {
   @Prop({ type: Number, min: 0 })
   totalAmount?: number;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   quantityKgRaw?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   unitPriceRaw?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   totalAmountRaw?: string;
 
   @Prop({ type: Number, min: 0 })
@@ -50,22 +50,22 @@ export const FiscalDocumentItemSchema = SchemaFactory.createForClass(FiscalDocum
 
 @Schema({ _id: true, timestamps: false })
 export class FiscalDocumentFile {
-  @Prop({ required: true, enum: FISCAL_FILE_KINDS })
+  @Prop({ type: String, required: true, enum: FISCAL_FILE_KINDS })
   kind!: FiscalFileKind;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ type: String, required: true, trim: true })
   originalName!: string;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ type: String, required: true, trim: true })
   mimeType!: string;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: Number, required: true, min: 0 })
   size!: number;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ type: String, required: true, trim: true })
   storagePath!: string;
 
-  @Prop({ required: true, default: Date.now })
+  @Prop({ type: Date, required: true, default: Date.now })
   uploadedAt!: Date;
 }
 
@@ -79,67 +79,68 @@ export class FiscalDocument extends AuditableSchema {
   @Prop({ type: Types.ObjectId, ref: 'PurchaseOrder', index: true })
   purchaseOrderId?: Types.ObjectId;
 
-  @Prop({ required: true, trim: true, index: true })
+  @Prop({ type: String, required: true, trim: true, index: true })
   orderNumber!: string;
 
-  @Prop({ trim: true, unique: true, sparse: true, index: true })
+  @Prop({ type: String, trim: true, unique: true, sparse: true, index: true })
   accessKey?: string;
 
-  @Prop({ trim: true, index: true })
+  @Prop({ type: String, trim: true, index: true })
   number?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   series?: string;
 
-  @Prop({ index: true })
+  @Prop({ type: Date, index: true })
   issuedAt?: Date;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   issuer?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   recipient?: string;
 
-  @Prop({ min: 0 })
+  @Prop({ type: Number, min: 0 })
   amount?: number;
 
   @Prop({ type: [FiscalDocumentItemSchema], default: [] })
   items!: FiscalDocumentItem[];
 
-  @Prop({ min: 0 })
+  @Prop({ type: Number, min: 0 })
   totalWeightKg?: number;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   totalWeightRaw?: string;
 
-  @Prop({ min: 0 })
+  @Prop({ type: Number, min: 0 })
   unitPrice?: number;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   unitPriceRaw?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   amountRaw?: string;
 
-  @Prop({ min: 0 })
+  @Prop({ type: Number, min: 0 })
   weightDecimalPlaces?: number;
 
-  @Prop({ min: 0 })
+  @Prop({ type: Number, min: 0 })
   unitPriceDecimalPlaces?: number;
 
-  @Prop({ min: 0 })
+  @Prop({ type: Number, min: 0 })
   amountDecimalPlaces?: number;
 
-  @Prop({ enum: ['xml', 'ocr', 'manual', 'none'], default: 'none' })
+  @Prop({ type: String, enum: ['xml', 'ocr', 'manual', 'none'], default: 'none' })
   extractionMethod!: 'xml' | 'ocr' | 'manual' | 'none';
 
-  @Prop({ min: 0, max: 1 })
+  @Prop({ type: Number, min: 0, max: 1 })
   extractionConfidence?: number;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   extractionError?: string;
 
   @Prop({
+    type: String,
     enum: FISCAL_DOCUMENT_STATUSES,
     default: 'pending',
     index: true,
@@ -149,7 +150,7 @@ export class FiscalDocument extends AuditableSchema {
   @Prop({ type: [FiscalDocumentFileSchema], default: [] })
   files!: FiscalDocumentFile[];
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   notes?: string;
 
   @Prop({ type: Boolean, default: false })

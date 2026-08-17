@@ -12,19 +12,19 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 @Schema({ _id: true, timestamps: false })
 export class PaymentHistoryEntry {
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: Number, required: true, min: 0 })
   amount!: number;
 
-  @Prop({ required: true })
+  @Prop({ type: Date, required: true })
   paidAt!: Date;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   method?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   notes?: string;
 
-  @Prop({ required: true, default: Date.now })
+  @Prop({ type: Date, required: true, default: Date.now })
   createdAt!: Date;
 }
 
@@ -32,7 +32,7 @@ export const PaymentHistoryEntrySchema = SchemaFactory.createForClass(PaymentHis
 
 @Schema({ timestamps: true })
 export class Payment extends AuditableSchema {
-  @Prop({ enum: PAYMENT_TYPES, default: 'receivable', index: true })
+  @Prop({ type: String, enum: PAYMENT_TYPES, default: 'receivable', index: true })
   type!: PaymentType;
 
   @Prop({ type: Types.ObjectId, ref: 'SalesOrder', index: true })
@@ -41,46 +41,46 @@ export class Payment extends AuditableSchema {
   @Prop({ type: Types.ObjectId, ref: 'PurchaseOrder', index: true })
   purchaseOrderId?: Types.ObjectId;
 
-  @Prop({ required: true, trim: true, index: true })
+  @Prop({ type: String, required: true, trim: true, index: true })
   orderNumber!: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Customer', index: true })
   customerId?: Types.ObjectId;
 
-  @Prop({ trim: true, index: true })
+  @Prop({ type: String, trim: true, index: true })
   customerName?: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   customerWhatsapp?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Producer', index: true })
   producerId?: Types.ObjectId;
 
-  @Prop({ trim: true, index: true })
+  @Prop({ type: String, trim: true, index: true })
   producerName?: string;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: Number, required: true, min: 0 })
   amount!: number;
 
-  @Prop({ default: 0, min: 0 })
+  @Prop({ type: Number, default: 0, min: 0 })
   paidAmount!: number;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: Number, required: true, min: 0 })
   balanceAmount!: number;
 
-  @Prop({ required: true, index: true })
+  @Prop({ type: Date, required: true, index: true })
   dueDate!: Date;
 
-  @Prop({ index: true })
+  @Prop({ type: Date, index: true })
   paidAt?: Date;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   method?: string;
 
-  @Prop({ enum: PAYMENT_STATUSES, default: 'open', index: true })
+  @Prop({ type: String, enum: PAYMENT_STATUSES, default: 'open', index: true })
   status!: PaymentStatus;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   notes?: string;
 
   @Prop({ type: [PaymentHistoryEntrySchema], default: [] })

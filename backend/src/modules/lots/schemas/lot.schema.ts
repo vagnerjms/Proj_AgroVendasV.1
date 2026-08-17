@@ -15,25 +15,25 @@ export class Lot extends AuditableSchema {
   @Prop({ type: Types.ObjectId, ref: 'Product', required: true, index: true })
   productId!: Types.ObjectId;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: Number, required: true, min: 0 })
   quantityBags!: number;
 
-  @Prop({ min: 0, default: 25 })
+  @Prop({ type: Number, min: 0, default: 25 })
   bagWeightKg!: number;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: Number, required: true, min: 0 })
   quantityKg!: number;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ type: String, required: true, trim: true })
   cropYear!: string;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   location?: string;
 
-  @Prop({ enum: LOT_STATUSES, default: 'available', index: true })
+  @Prop({ type: String, enum: LOT_STATUSES, default: 'available', index: true })
   status!: LotStatus;
 
-  @Prop({ trim: true })
+  @Prop({ type: String, trim: true })
   notes?: string;
 }
 

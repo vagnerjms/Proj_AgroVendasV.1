@@ -30,6 +30,54 @@ async function run() {
     process.exit(1);
   }
 
+  // 1. Atualizar pesos líquidos das Notas Fiscais no banco de dados com base na planilha
+  const weightMap: Record<string, number> = {
+    '27957664': 19240,
+    '27967571': 18200,
+    '27970562': 22560,
+    '27977672': 20300,
+    '27980429': 19960,
+    '27980432': 15810,
+    '27998942': 19890,
+    '27999695': 15998,
+    '27999696': 11252,
+    '28003902': 20240,
+    '28007928': 16530,
+    '28008239': 28120,
+    '28017525': 18240,
+    '28017539': 16720,
+    '28021552': 15900,
+    '28024828': 16750,
+    '28033001': 19200,
+    '28042638': 22388,
+    '28042894': 18610,
+    '28042900': 15135,
+    '28042907': 10644,
+    '28047798': 19580,
+    '28053397': 18870,
+    '28053399': 20540,
+    '28058820': 19740,
+    '28059766': 22220,
+    '28067709': 15120,
+    '28069150': 18680,
+    '28069166': 21100,
+    '27957569': 19285,
+    '27957662': 21530
+  };
+
+  console.log('Atualizando pesos das Notas Fiscais com base na planilha...');
+  let updatedWeightsCount = 0;
+  for (const [nfeNum, weight] of Object.entries(weightMap)) {
+    const result = await fiscalDocModel.updateOne(
+      { number: nfeNum, isDeleted: false },
+      { $set: { totalWeightKg: weight } }
+    );
+    if (result.matchedCount > 0) {
+      updatedWeightsCount++;
+    }
+  }
+  console.log(`Pesos atualizados para ${updatedWeightsCount} Notas Fiscais.`);
+
   const backupData = JSON.parse(readFileSync(backupPath, 'utf8'));
   console.log(`Carregadas ${backupData.length} vendas do backup JSON.`);
 

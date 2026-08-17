@@ -62,7 +62,7 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
       isDeleted: false
     }).lean();
 
-    const duplicateOrderIds = duplicateOrders.map(o => o._id.toString());
+    const duplicateOrderIds = duplicateOrders.map(o => (o as any)._id.toString());
     if (duplicateOrders.length === 0) {
       console.log('FiscalDocumentsService: Nenhuma venda duplicada VPXXX encontrada no banco para limpar.');
       return;
@@ -93,7 +93,7 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
         let score = 0;
 
         // Regra 1: Mesmo Cliente
-        const dupOrder = duplicateOrders.find(o => o._id.toString() === doc.salesOrderId?.toString());
+        const dupOrder = duplicateOrders.find(o => (o as any)._id.toString() === doc.salesOrderId?.toString());
         if (dupOrder && order.customerId) {
           const customerNew = await customerModel.findById(dupOrder.customerId).lean() as any;
           const customerOrg = await customerModel.findById(order.customerId).lean() as any;
@@ -104,7 +104,7 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
 
         // Regra 2: Diferença de Data (máximo de 3 dias de diferença)
         const orderTime = new Date(order.date).getTime();
-        const docTime = new Date(doc.issuedAt).getTime();
+        const docTime = doc.issuedAt ? new Date(doc.issuedAt).getTime() : 0;
         const diffDays = Math.abs(orderTime - docTime) / (1000 * 60 * 60 * 24);
         if (diffDays <= 3) {
           score += (3 - diffDays) * 10;
@@ -147,7 +147,7 @@ export class FiscalDocumentsService implements OnApplicationBootstrap {
           }
         );
 
-        await this.salesOrdersService.recalculateFinancials(bestOrder._id.toString());
+        await this.salesOrdersService.recalculateFinancials((bestOrder as any)._id.toString());
         restoredCount++;
       } else {
         console.log(`FiscalDocumentsService: Não foi possível encontrar uma venda correspondente para a nota ${doc.number}`);
